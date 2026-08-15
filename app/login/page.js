@@ -39,7 +39,7 @@ export default function LoginPage() {
           {mode === "login" ? "Connexion à PLANIF" : "Créer un compte PLANIF"}
         </h1>
         <p className="text-sm text-[#7A7362] mb-4">
-          {mode === "login" ? "Retrouvez vos lieux, groupes et thèmes." : "Vos données seront sauvegardées pour vous seule."}
+          {mode === "login" ? "Votre outil de planification d'activités éducatives." : "Vos données seront sauvegardées pour vous seule."}
         </p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input

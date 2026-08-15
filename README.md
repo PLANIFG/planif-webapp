@@ -74,6 +74,50 @@ de domaine personnalisé dans les réglages Netlify si vous le souhaitez.
 6. Essayez « Générer des idées » — si ça échoue, vérifiez la variable
    `ANTHROPIC_API_KEY` dans Netlify
 
+## Étape 5 — Mettre en place les abonnements payants (Stripe)
+
+Cette étape est optionnelle — faites-la seulement quand vous êtes prête à
+faire payer l'accès à PLANIF. Tant que ce n'est pas fait, personne ne peut
+utiliser l'app même en créant un compte (l'accès est bloqué en attendant
+un abonnement actif) — donc si vous n'êtes pas prête, dites-le et on peut
+désactiver temporairement ce blocage.
+
+1. Créez un compte sur **stripe.com** (gratuit, aucun frais tant qu'il n'y
+   a pas de vraies transactions)
+2. Dans le tableau de bord Stripe, cherchez **Developers → API keys** →
+   copiez la clé qui commence par `sk_test_...` (mode test, pour essayer
+   sans vrai argent d'abord)
+3. Exécutez `supabase/schema_billing.sql` dans Supabase (SQL Editor →
+   coller → Run) — comme vous l'avez fait pour le premier fichier SQL
+4. Dans Supabase → Project Settings → API Keys, copiez aussi la clé
+   **service_role** (différente de la clé publique utilisée jusqu'ici)
+5. Dans Netlify → Environment variables, ajoutez :
+   - `STRIPE_SECRET_KEY` → la clé de l'étape 2
+   - `SUPABASE_SERVICE_ROLE_KEY` → la clé de l'étape 4
+   - `STRIPE_MONTHLY_PRICE_CENTS` → prix mensuel en cents (ex. `999` pour 9,99 $)
+   - `STRIPE_ANNUAL_PRICE_CENTS` → prix annuel en cents (ex. `8900` pour 89 $)
+   - `SITE_URL` → l'adresse complète de votre site
+6. Configurez le webhook Stripe (pour que les paiements se reflètent
+   automatiquement) :
+   - Dans Stripe → Developers → Webhooks → **Add endpoint**
+   - URL : `https://VOTRE-SITE.netlify.app/api/stripe-webhook`
+   - Événements à écouter : `checkout.session.completed`,
+     `customer.subscription.updated`, `customer.subscription.deleted`
+   - Une fois créé, copiez le **Signing secret** (commence par `whsec_...`)
+   - Ajoutez-le dans Netlify comme `STRIPE_WEBHOOK_SECRET`
+7. Redéployez (« Deploy project without cache »)
+
+**Pour ajuster les prix plus tard** : changez seulement
+`STRIPE_MONTHLY_PRICE_CENTS` et `STRIPE_ANNUAL_PRICE_CENTS` dans Netlify,
+puis redéployez — aucune modification de code nécessaire.
+
+**Mode test vs argent réel** : tant que vous utilisez une clé `sk_test_...`,
+aucun vrai paiement n'est traité (utilisez le numéro de carte test
+`4242 4242 4242 4242`, n'importe quelle date future, n'importe quel CVC).
+Quand vous êtes prête à accepter de vrais paiements, remplacez la clé par
+celle en mode Live dans Stripe (`sk_live_...`) et refaites le webhook
+avec l'URL en mode Live.
+
 ## Ce qui est sauvegardé automatiquement (et ce qui ne l'est pas encore)
 
 **Sauvegardé** : vos lieux, vos groupes, votre thème par défaut — liés à

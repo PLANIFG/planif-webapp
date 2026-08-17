@@ -16,9 +16,10 @@ const COLORS = {
   ink: "#2B2A26",
   sage: "#E4EEE4",
   danger: "#C4523A",
+  marine: "#10192B",
 };
 const FONT_IMPORT_URL =
-  "https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap";
+  "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap";
 
 const DEFAULT_LIEUX = ["Gymnase", "Cuisine", "Labo créatif", "Cour intérieure"];
 const AGES = ["4-6 ans", "7-9 ans", "10-12 ans"];
@@ -401,7 +402,7 @@ function ColoringPrintPage({ formes, theme, customImages }) {
         {images.map((img, i) => (
           <div key={i} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Fiche de transition {images.length > 1 ? `(${i + 1}/${images.length})` : ""}</p>
-            <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
+            <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
             <div className="leaf-underline w-16 mt-3 mb-6" />
             <div className="flex items-center justify-center">
               <img src={img} alt="Coloriage" className="max-w-full max-h-[600px] rounded-xl border border-[#E3DACB]" />
@@ -415,7 +416,7 @@ function ColoringPrintPage({ formes, theme, customImages }) {
   return (
     <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
       <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Fiche de transition</p>
-      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
+      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
       <div className="leaf-underline w-16 mt-3 mb-6" />
       <div className="grid grid-cols-2 gap-6">
         {shapes.map((name) => (
@@ -433,7 +434,7 @@ function WordSearchPrintPage({ wordSearch, theme }) {
   return (
     <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
       <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Fiche de transition</p>
-      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Mots cachés — {theme || ""}</h2>
+      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Mots cachés — {theme || ""}</h2>
       <div className="leaf-underline w-16 mt-3 mb-6" />
       <table className="border-collapse mx-auto mb-6">
         <tbody>
@@ -1038,13 +1039,13 @@ export default function App() {
       `}</style>
 
       {/* Top bar — scrolls together with the rest of the page */}
-      <div className="no-print" style={{ background: COLORS.paper, borderBottom: "1px solid #E3DACB" }}>
+      <div className="no-print" style={{ background: COLORS.paper, borderBottom: "1px solid #E3DACB", borderTop: `3px solid ${COLORS.marine}` }}>
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.moss }}>
               <Sparkles size={16} color="white" />
             </div>
-            <span className="font-semibold text-[15px]" style={{ fontFamily: "Fredoka, sans-serif" }}>
+            <span className="font-semibold text-[15px]" style={{ fontFamily: "Baloo 2, sans-serif" }}>
               Planificateur d'activités éducatives
             </span>
           </div>
@@ -1145,7 +1146,7 @@ function IdeesView(props) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>
+        <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
           Planification d'activités
         </h1>
         <p className="text-[#7A7362] mt-1 max-w-2xl">
@@ -1272,7 +1273,7 @@ function IdeesView(props) {
 
       {ideas.length > 0 && (
         <div>
-          <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Idées proposées</h2>
+          <h2 className="text-lg font-bold mb-3" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Idées proposées</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {ideas.map((idea) => (
               <IdeaCard
@@ -1294,7 +1295,7 @@ function IdeesView(props) {
 
       {kept.length > 0 && (
         <SectionCard>
-          <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>
+          <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
             <Check size={18} className="text-[#3C6E52]" /> Retenues pour la journée ({kept.length})
           </h2>
           <ul className="space-y-1.5 mb-2">
@@ -1316,7 +1317,7 @@ function IdeesView(props) {
             onChange={(e) => setTransitionEnabled(e.target.checked)}
             className="w-4 h-4 rounded accent-[#3C6E52]"
           />
-          <span className="font-semibold" style={{ fontFamily: "Fredoka, sans-serif" }}>Fiches de transition</span>
+          <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition</span>
         </label>
         {transitionEnabled && (
           <div className="mt-3 ml-6">
@@ -1387,7 +1388,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
     <div className="bg-white border border-[#E3DACB] rounded-2xl p-4 flex flex-col" style={{ boxShadow: "0 1px 2px rgba(43,42,38,0.04)" }}>
       <div className="flex items-start justify-between gap-2 mb-1">
         {isEditing ? <TextField value={idea.nom} onChange={(v) => onUpdate({ nom: v })} className="font-semibold" /> : (
-          <h3 className="font-bold text-[#2B2A26]" style={{ fontFamily: "Fredoka, sans-serif" }}>{idea.nom}</h3>
+          <h3 className="font-bold text-[#2B2A26]" style={{ fontFamily: "Baloo 2, sans-serif" }}>{idea.nom}</h3>
         )}
         <button onClick={onEdit} className="shrink-0 text-[#B3A990] hover:text-[#3C6E52]" title="Modifier"><Pencil size={15} /></button>
       </div>
@@ -1470,7 +1471,7 @@ function HoraireView({
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Bâtir l'horaire</h1>
+        <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Bâtir l'horaire</h1>
         <p className="text-[#7A7362] mt-1 max-w-2xl">
           Une seule liste, dans l'ordre réel de la journée. Les blocs « Rotation » se remplissent
           automatiquement avec les {kept.length} activité{kept.length > 1 ? "s" : ""} retenue{kept.length > 1 ? "s" : ""}.
@@ -1484,7 +1485,7 @@ function HoraireView({
       </SectionCard>
 
       <SectionCard>
-        <h3 className="font-semibold mb-3" style={{ fontFamily: "Fredoka, sans-serif" }}>Groupes</h3>
+        <h3 className="font-semibold mb-3" style={{ fontFamily: "Baloo 2, sans-serif" }}>Groupes</h3>
         <div className="space-y-2">
           {groups.map((g, idx) => (
             <div key={idx} className="flex items-center gap-2">
@@ -1498,7 +1499,7 @@ function HoraireView({
 
       <SectionCard>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold" style={{ fontFamily: "Fredoka, sans-serif" }}>Déroulement de la journée</h3>
+          <h3 className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Déroulement de la journée</h3>
         </div>
 
         {kept.length === 0 && (
@@ -1684,7 +1685,7 @@ ${fichesHtml}
         <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
           <header className="mb-6">
             <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Horaire mensuelle</p>
-            <h1 className="text-3xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>{theme || "Thème du mois"}</h1>
+            <h1 className="text-3xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{theme || "Thème du mois"}</h1>
             <div className="leaf-underline w-16 mt-3" />
           </header>
           <table className="w-full border-collapse">
@@ -1722,7 +1723,7 @@ ${fichesHtml}
       <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
         <header className="mb-6">
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Horaire de la journée</p>
-          <h1 className="text-3xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>{theme || "Thème de la journée"}</h1>
+          <h1 className="text-3xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{theme || "Thème de la journée"}</h1>
           {dateLabel && <p className="text-[#7A7362] mt-1">{dateLabel}</p>}
           <div className="leaf-underline w-16 mt-3" />
         </header>
@@ -1771,7 +1772,7 @@ ${fichesHtml}
       {kept.length > 0 && (
         <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Préparation</p>
-          <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Matériel</h2>
+          <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Matériel</h2>
           <div className="leaf-underline w-16 mt-3 mb-5" />
 
           <h3 className="text-sm font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: COLORS.moss }}>
@@ -1794,7 +1795,7 @@ ${fichesHtml}
       {kept.map((st) => (
         <div key={st.id} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>{st.lieu || "Plateau"}</p>
-          <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>{st.nom}</h2>
+          <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{st.nom}</h2>
           <p className="text-[#7A7362] mt-0.5">{st.age} · {st.duree}</p>
           <div className="leaf-underline w-16 mt-3 mb-5" />
 
@@ -2118,7 +2119,7 @@ ${fichesHtml.join("")}
       {wtab === "configurer" ? (
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
           <div>
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>Bâtir la semaine</h1>
+            <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Bâtir la semaine</h1>
             <p className="text-[#7A7362] mt-1 max-w-2xl">
               Remplissez l'en-tête, choisissez les périodes à générer, puis laissez l'outil proposer des activités — modifiables case par case.
             </p>
@@ -2154,7 +2155,7 @@ ${fichesHtml.join("")}
           </SectionCard>
 
           <SectionCard>
-            <h3 className="font-semibold mb-3" style={{ fontFamily: "Fredoka, sans-serif" }}>Jours</h3>
+            <h3 className="font-semibold mb-3" style={{ fontFamily: "Baloo 2, sans-serif" }}>Jours</h3>
             <div className="space-y-2">
               {jours.map((j, idx) => (
                 <div key={j.id} className="flex items-center gap-2 bg-white border border-[#DCD3C2] rounded-lg pl-2 pr-1 py-1.5">
@@ -2169,7 +2170,7 @@ ${fichesHtml.join("")}
           </SectionCard>
 
           <SectionCard>
-            <h3 className="font-semibold mb-3" style={{ fontFamily: "Fredoka, sans-serif" }}>Périodes — cochez celles à générer</h3>
+            <h3 className="font-semibold mb-3" style={{ fontFamily: "Baloo 2, sans-serif" }}>Périodes — cochez celles à générer</h3>
             <div className="flex flex-wrap gap-2">
               {periodes.map((p, idx) => (
                 <div key={idx} className="flex items-center gap-1 bg-white border border-[#DCD3C2] rounded-lg pl-1 pr-1 py-1">
@@ -2196,7 +2197,7 @@ ${fichesHtml.join("")}
           </SectionCard>
 
           <SectionCard>
-            <h3 className="font-semibold mb-3" style={{ fontFamily: "Fredoka, sans-serif" }}>Grille — modifiable case par case</h3>
+            <h3 className="font-semibold mb-3" style={{ fontFamily: "Baloo 2, sans-serif" }}>Grille — modifiable case par case</h3>
             {visiblePeriodes.length === 0 && (
               <p className="text-sm mb-3 px-3 py-2 rounded-lg bg-[#FBF3E4] text-[#8A6A2B]">Aucune période cochée ci-dessus — cochez au moins une période pour voir la grille.</p>
             )}
@@ -2313,7 +2314,7 @@ ${fichesHtml.join("")}
                 onChange={(e) => setTransitionEnabled(e.target.checked)}
                 className="w-4 h-4 rounded accent-[#3C6E52]"
               />
-              <span className="font-semibold" style={{ fontFamily: "Fredoka, sans-serif" }}>Fiches de transition</span>
+              <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition</span>
             </label>
             {transitionEnabled && (
               <div className="mt-3 ml-6">
@@ -2388,7 +2389,7 @@ ${fichesHtml.join("")}
           {visiblePeriodes.length > 0 && (
             <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-6 sm:p-8 mb-6" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
               <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Résumé de la semaine</p>
-              <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>{groupeNom || "Grille de planification — SDG"}</h1>
+              <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{groupeNom || "Grille de planification — SDG"}</h1>
               <div className="leaf-underline w-16 mt-2 mb-4" />
               <div className="flex flex-wrap gap-x-6 gap-y-1 mb-5 text-sm">
                 <div><span className="text-[#7A7362]">Éducateur·trice :</span> <strong>{educatrice || "—"}</strong></div>
@@ -2446,7 +2447,7 @@ ${fichesHtml.join("")}
           {fiches.map(({ key, jour, periode, cell }) => (
             <div key={key} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-6 sm:p-8 mb-6" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
               <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>{jour} · {periode}{cell.local ? ` · ${cell.local}` : ""}{cell.duree ? ` · ${cell.duree}` : ""}</p>
-              <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Fredoka, sans-serif", color: COLORS.mossDark }}>{cell.activite}</h2>
+              <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{cell.activite}</h2>
               {cell.domaines.length > 0 && <p className="text-[#7A7362] mt-1">{cell.domaines.join(" · ")}</p>}
               <div className="leaf-underline w-16 mt-3 mb-5" />
               {cell.amorce && (

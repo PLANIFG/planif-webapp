@@ -1,3 +1,5 @@
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { stripe, PLANS } from "../../../lib/stripe";
 
 export async function POST(request) {
@@ -8,13 +10,25 @@ export async function POST(request) {
     return Response.json({ error: "Corps de requête invalide." }, { status: 400 });
   }
 
-  const { plan, userId, email } = body || {};
+  const { plan } = body || {};
   if (!PLANS[plan]) {
     return Response.json({ error: "Plan invalide." }, { status: 400 });
   }
-  if (!userId || !email) {
-    return Response.json({ error: "Utilisateur requis." }, { status: 400 });
+
+  // On ne fait plus confiance au userId/email envoyés par le client —
+  // on lit la vraie session connectée depuis les cookies, côté serveur.
+  const supabase = createRouteHandlerClient({ cookies });
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return Response.json({ error: "Vous devez être connectée pour vous abonner." }, { status: 401 });
   }
+
+  const userId = user.id;
+  const email = user.email;
 
   const { amountCents, interval, label } = PLANS[plan];
   const siteUrl = process.env.SITE_URL || request.headers.get("origin");

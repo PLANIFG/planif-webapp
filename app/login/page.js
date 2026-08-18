@@ -250,6 +250,8 @@ export default function LoginPage() {
           align-items:flex-end;
           justify-content:center;
           overflow: visible;
+          z-index: 2147483647;
+          pointer-events: none;
         }
         .logo-bas-wrap img{
           height: 34px;

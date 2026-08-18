@@ -1816,7 +1816,7 @@ ${fichesHtml}
 
       {transitionEnabled && transitionData && (
         <>
-          <ColoringPrintPage formes={transitionData.formes} theme={theme} customImages={transitionImages} />
+          {transitionImages.length > 0 && <ColoringPrintPage formes={transitionData.formes} theme={theme} customImages={transitionImages} />}
           <WordSearchPrintPage wordSearch={transitionData.wordSearch} theme={theme} />
         </>
       )}
@@ -2524,7 +2524,7 @@ ${fichesHtml.join("")}
 
           {transitionEnabled && transitionData && (
             <>
-              <ColoringPrintPage formes={transitionData.formes} theme={theme} customImages={transitionImages} />
+              {transitionImages.length > 0 && <ColoringPrintPage formes={transitionData.formes} theme={theme} customImages={transitionImages} />}
               <WordSearchPrintPage wordSearch={transitionData.wordSearch} theme={theme} />
             </>
           )}

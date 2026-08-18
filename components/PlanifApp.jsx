@@ -1366,13 +1366,6 @@ function IdeesView(props) {
             {transitionData && !transitionError && (
               <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
                 <p className="text-xs font-bold text-[#3C6E52] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
-                <div className="flex gap-2 mb-2">
-                  {transitionData.formes.map((f) => (
-                    <div key={f} className="w-12 h-12 border border-[#E3DACB] rounded-lg p-1">
-                      <svg viewBox="0 0 200 200" className="w-full h-full">{COLORING_SHAPES[f]}</svg>
-                    </div>
-                  ))}
-                </div>
                 <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
                 {transitionData.imagePrompts?.length > 0 && (
                   <div className="pt-2 border-t border-[#EDE6D8]">
@@ -2158,8 +2151,8 @@ function WeeklyGridTool() {
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Grille de planification — SDG</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
 <p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
-<h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(groupeNom) || "Grille de planification — SDG"}</h1>
-<p style="color:#7A7362;">Éducateur·trice : <strong>${escapeHtml(educatrice) || "—"}</strong> &nbsp;|&nbsp; Semaine : <strong>${escapeHtml(semaine) || "—"}</strong> &nbsp;|&nbsp; Thème : <strong>${escapeHtml(theme) || "—"}</strong></p>
+<h1 style="color:#2A4E3B;margin:4px 0 12px;">Grille de planification — SDG</h1>
+<p style="color:#7A7362;">Groupe : <strong>${escapeHtml(groupeNom) || "—"}</strong> &nbsp;|&nbsp; Éducateur·trice : <strong>${escapeHtml(educatrice) || "—"}</strong> &nbsp;|&nbsp; Semaine : <strong>${escapeHtml(semaine) || "—"}</strong> &nbsp;|&nbsp; Thème : <strong>${escapeHtml(theme) || "—"}</strong></p>
 <table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Jour</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table>
 ${fichesHtml.join("")}
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
@@ -2418,13 +2411,6 @@ ${fichesHtml.join("")}
                 {transitionData && !transitionError && (
                   <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
                     <p className="text-xs font-bold text-[#3C6E52] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
-                    <div className="flex gap-2 mb-2">
-                      {transitionData.formes.map((f) => (
-                        <div key={f} className="w-12 h-12 border border-[#E3DACB] rounded-lg p-1">
-                          <svg viewBox="0 0 200 200" className="w-full h-full">{COLORING_SHAPES[f]}</svg>
-                        </div>
-                      ))}
-                    </div>
                     <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
                     {transitionData.imagePrompts?.length > 0 && (
                       <div className="pt-2 border-t border-[#EDE6D8]">
@@ -2614,6 +2600,7 @@ function BibliothequeView({ onBack }) {
   const [libraryName, setLibraryName] = useState("Ma bibliothèque");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -2666,17 +2653,64 @@ function BibliothequeView({ onBack }) {
         </p>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white border border-[#E3DACB] rounded-2xl p-4">
-              <div className="flex items-start justify-between gap-2">
-                <h4 className="font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{item.title}</h4>
-                <button onClick={() => removeItem(item.id)} className="text-[#B3A990] hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
+          {items.map((item) => {
+            const isOpen = expandedId === item.id;
+            const p = item.payload || {};
+            const keptList = Array.isArray(p.kept) ? p.kept : null;
+            const joursList = Array.isArray(p.jours) ? p.jours : null;
+            return (
+              <div key={item.id} className="bg-white border border-[#E3DACB] rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{item.title}</h4>
+                  <button onClick={() => removeItem(item.id)} className="text-[#B3A990] hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
+                </div>
+                <p className="text-xs text-[#7A7362] mt-1">
+                  Enregistrée le {new Date(item.created_at).toLocaleDateString("fr-CA")}
+                </p>
+                <button
+                  onClick={() => setExpandedId(isOpen ? null : item.id)}
+                  className="mt-2 text-xs font-semibold text-[#3C6E52] hover:underline"
+                >
+                  {isOpen ? "▲ Cacher le contenu" : "▼ Voir le contenu"}
+                </button>
+                {isOpen && (
+                  <div className="mt-3 pt-3 border-t border-[#EDE6D8] space-y-2">
+                    {keptList && keptList.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {keptList.map((a, i) => (
+                          <li key={i} className="text-sm">
+                            <span className="font-semibold">{a.nom}</span>
+                            {(a.lieu || a.age) && <span className="text-xs text-[#7A7362]"> — {[a.lieu, a.age].filter(Boolean).join(" · ")}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {joursList && joursList.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {joursList.map((j, i) => {
+                          const dayCells = p.cells
+                            ? Object.entries(p.cells).filter(([key]) => key.startsWith(`${j.name}__`))
+                            : [];
+                          return (
+                            <li key={i} className="text-sm">
+                              <span className="font-semibold">{j.name}</span>
+                              {j.lieu && <span className="text-xs text-[#7A7362]"> — {j.lieu}</span>}
+                              {dayCells.map(([key, cell], ci) => cell?.activite && (
+                                <div key={ci} className="text-xs text-[#7A7362] pl-3">• {cell.activite}</div>
+                              ))}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                    {!keptList && !joursList && (
+                      <p className="text-xs text-[#B3A990]">Aucun détail disponible pour cette planification.</p>
+                    )}
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-[#7A7362] mt-1">
-                Enregistrée le {new Date(item.created_at).toLocaleDateString("fr-CA")}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

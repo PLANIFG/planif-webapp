@@ -250,7 +250,8 @@ export default function LoginPage() {
         }
         .logo-bas-wrap img{
           height: 34px;
-          width:auto;
+          width: 111px;
+          object-fit: contain;
           display:block;
           transform: rotate(90deg);
           transform-origin: center center;

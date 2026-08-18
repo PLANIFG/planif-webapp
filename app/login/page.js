@@ -139,6 +139,10 @@ export default function LoginPage() {
           font-size: 26px;
           color: var(--encre);
         }
+        .titre-connexion .logo-titre{
+          height: 30px;
+          width: auto;
+        }
         .carte .sous-titre{
           font-size: 14px;
           color: #7A7166;
@@ -235,13 +239,14 @@ export default function LoginPage() {
         }
         .logo-bas-wrap{
           position: fixed;
-          left: -16px;
+          left: 8px;
           bottom: 45px;
-          width: 50px;
+          width: 60px;
           height: 130px;
           display:flex;
           align-items:flex-end;
           justify-content:center;
+          overflow: visible;
         }
         .logo-bas-wrap img{
           height: 34px;
@@ -258,7 +263,7 @@ export default function LoginPage() {
             <h1>Planificateur d&apos;activités</h1>
 
             <div className="beneficies">
-              <div className="item">Conception d&apos;activités complète</div>
+              <div className="item">Conception d&apos;activités complètes</div>
               <div className="item">Horaire et liste de matériel créés en quelques clics</div>
               <div className="item">Contenu pédagogique prêt à imprimer</div>
               <div className="item">Un outil simple et efficace pour rentabiliser votre temps</div>
@@ -269,7 +274,8 @@ export default function LoginPage() {
         <div className="panneau-form">
           <div className="carte">
             <div className="titre-connexion">
-              <h2>Connexion à PLANIF</h2>
+              <h2>Connexion à</h2>
+              <img src="/logo-planif-vert.png" alt="PLANIF" className="logo-titre" />
             </div>
             <div className="sous-titre">
               {mode === "login"

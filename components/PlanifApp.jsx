@@ -820,6 +820,7 @@ function IconBtn({ onClick, title, children, danger }) {
 export default function App() {
   const [tab, setTab] = useState("idees"); // idees | horaire | apercu
   const [showBiblio, setShowBiblio] = useState(false);
+  const [openingPortal, setOpeningPortal] = useState(false);
 
   // ---- generator state ----
   const [theme, setTheme] = useState("Éveil de la nature");
@@ -886,7 +887,7 @@ export default function App() {
     }, 1200); // sauvegarde 1,2 s après la dernière modification
     return () => clearTimeout(timeout);
   }, [lieux, groups, theme, settingsLoaded]);
-  const [dayType, setDayType] = useState("pedagogique");
+  const [dayType, setDayType] = useState("semaine");
   const [activitesParMercredi, setActivitesParMercredi] = useState(1);
   const applyDayType = (key) => {
     const found = DAY_TYPES.find((d) => d.key === key);
@@ -1036,7 +1037,7 @@ export default function App() {
           .print-page:last-child { break-after: auto; }
           .print-shadow-off { box-shadow: none !important; border-color: #ddd !important; }
         }
-        .leaf-underline { background-image: linear-gradient(90deg, ${COLORS.sun}, ${COLORS.moss}); height: 3px; border-radius: 999px; }
+        .leaf-underline { background: transparent; height: 0; margin: 0 !important; }
       `}</style>
 
       {/* Top bar — scrolls together with the rest of the page */}
@@ -1052,6 +1053,25 @@ export default function App() {
               style={{ background: COLORS.moss }}
             >
               Ma bibliothèque
+            </button>
+            <button
+              onClick={async () => {
+                setOpeningPortal(true);
+                try {
+                  const res = await fetch("/api/create-portal-session", { method: "POST" });
+                  const data = await res.json();
+                  if (data.url) window.location.href = data.url;
+                  else alert(data.error || "Impossible d'ouvrir la gestion d'abonnement.");
+                } catch (e) {
+                  alert("Erreur réseau.");
+                } finally {
+                  setOpeningPortal(false);
+                }
+              }}
+              disabled={openingPortal}
+              className="text-[13px] font-bold text-[#7A7362] bg-white border border-[#E3DACB] px-4 py-2 rounded-full disabled:opacity-50"
+            >
+              {openingPortal ? "..." : "Gérer mon abonnement"}
             </button>
             <button
               onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
@@ -1122,7 +1142,7 @@ export default function App() {
       )}
 
       {/* Logo PLANIF, tourné, fixé en bas à gauche */}
-      <div className="no-print" style={{ position: "fixed", left: -16, bottom: 45, width: 50, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 40 }}>
+      <div className="no-print" style={{ position: "fixed", left: 8, bottom: 45, width: 60, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "visible", zIndex: 40 }}>
         <img src="/logo-planif-vert.png" alt="PLANIF" style={{ height: 34, width: "auto", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
       </div>
     </div>
@@ -1329,7 +1349,7 @@ function IdeesView(props) {
             onChange={(e) => setTransitionEnabled(e.target.checked)}
             className="w-4 h-4 rounded accent-[#3C6E52]"
           />
-          <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition</span>
+          <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition <span className="font-normal text-xs text-[#7A7362]">(coloriages et mots cachés)</span></span>
         </label>
         {transitionEnabled && (
           <div className="mt-3 ml-6">
@@ -1356,10 +1376,17 @@ function IdeesView(props) {
                 <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
                 {transitionData.imagePrompts?.length > 0 && (
                   <div className="pt-2 border-t border-[#EDE6D8]">
-                    <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré (à coller dans un générateur d'images gratuit — Adobe Firefly, educol.net, ColoringBook.AI…) :</p>
+                    <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré :</p>
+                    <p className="text-xs text-[#7A7362] mb-2">Sur educol.net, entrez une description du dessin voulu (ex. « un renard curieux dans une forêt d'automne ») pour obtenir un coloriage prêt à imprimer.</p>
                     {transitionData.imagePrompts.map((p, i) => (
-                      <p key={i} className="text-xs text-[#2B2A26] italic mt-1 bg-[#FBF3E4] rounded px-2 py-1">« {p} »</p>
+                      <div key={i} className="flex items-center gap-2 bg-[#FBF3E4] rounded px-2 py-1 mt-1">
+                        <p className="text-xs text-[#2B2A26] italic flex-1">« {p} »</p>
+                        <button onClick={() => navigator.clipboard.writeText(p)} className="text-[10px] font-bold text-[#3C6E52] bg-white border border-[#DCD3C2] rounded px-2 py-1 shrink-0">Copier</button>
+                      </div>
                     ))}
+                    <a href="https://educol.net" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-white px-3 py-1.5 rounded-lg" style={{ background: COLORS.moss }}>
+                      Ouvrir educol.net ↗
+                    </a>
                     <div className="mt-2">
                       <label className="text-xs font-semibold text-[#3C6E52] cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DCD3C2] hover:border-[#3C6E52]">
                         <Sparkles size={12} /> Importer une ou plusieurs images
@@ -2372,7 +2399,7 @@ ${fichesHtml.join("")}
                 onChange={(e) => setTransitionEnabled(e.target.checked)}
                 className="w-4 h-4 rounded accent-[#3C6E52]"
               />
-              <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition</span>
+              <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition <span className="font-normal text-xs text-[#7A7362]">(coloriages et mots cachés)</span></span>
             </label>
             {transitionEnabled && (
               <div className="mt-3 ml-6">
@@ -2401,7 +2428,8 @@ ${fichesHtml.join("")}
                     <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
                     {transitionData.imagePrompts?.length > 0 && (
                       <div className="pt-2 border-t border-[#EDE6D8]">
-                        <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré, collez une description sur educol.net :</p>
+                        <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré :</p>
+                        <p className="text-xs text-[#7A7362] mb-2">Sur educol.net, entrez une description du dessin voulu (ex. « un renard curieux dans une forêt d'automne ») pour obtenir un coloriage prêt à imprimer.</p>
                         {transitionData.imagePrompts.map((p, i) => (
                           <div key={i} className="flex items-center gap-2 bg-[#FBF3E4] rounded px-2 py-1 mt-1">
                             <p className="text-xs text-[#2B2A26] italic flex-1">« {p} »</p>
@@ -2560,7 +2588,7 @@ ${fichesHtml.join("")}
                 if (user) {
                   await supabase.from("library_items").insert({
                     user_id: user.id,
-                    title: groupeNom || theme || "Sans titre",
+                    title: theme || groupeNom || "Sans titre",
                     payload: { groupeNom, educatrice, semaine, theme, jours, cells },
                   });
                 }

@@ -115,6 +115,9 @@ export default function LoginPage() {
           justify-content:center;
           padding: 32px 20px 130px;
         }
+        @media (max-width: 480px){
+          .panneau-form{ padding-left: 56px; }
+        }
         .carte{
           width: 100%;
           max-width: 380px;

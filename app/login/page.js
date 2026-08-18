@@ -243,7 +243,7 @@ export default function LoginPage() {
         .logo-bas-wrap{
           position: fixed;
           left: 8px;
-          bottom: 45px;
+          bottom: calc(45px + env(safe-area-inset-bottom));
           width: 60px;
           height: 130px;
           display:flex;
@@ -252,6 +252,8 @@ export default function LoginPage() {
           overflow: visible;
           z-index: 2147483647;
           pointer-events: none;
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
         }
         .logo-bas-wrap img{
           height: 34px;

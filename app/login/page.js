@@ -9,7 +9,23 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMessage("");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setMessage("Un lien de réinitialisation a été envoyé à votre courriel.");
+    } catch (err) {
+      setError(err.message || "Une erreur est survenue.");
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -286,7 +302,7 @@ export default function LoginPage() {
 
               {mode === "login" && (
                 <div className="ligne-oubli">
-                  <button type="button">Mot de passe oublié ?</button>
+                  <button type="button" onClick={handleForgotPassword} disabled={loading || !email}>Mot de passe oublié ?</button>
                 </div>
               )}
 

@@ -1141,8 +1141,9 @@ export default function App() {
         </>
       )}
 
+
       {/* Logo PLANIF, tourné, fixé en bas à gauche */}
-      <div className="no-print" style={{ position: "fixed", left: 8, bottom: 45, width: 60, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "visible", zIndex: 40 }}>
+      <div className="no-print" style={{ position: "fixed", left: 8, bottom: 45, width: 60, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "visible", zIndex: 2147483647, pointerEvents: "none" }}>
         <img src="/logo-planif-vert.png" alt="PLANIF" style={{ height: 34, width: 111, objectFit: "contain", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
       </div>
     </div>
@@ -1176,7 +1177,7 @@ function IdeesView(props) {
   const [editingLieu, setEditingLieu] = useState(null);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-5xl mx-auto pl-14 pr-4 sm:px-4 py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
           {DAY_TYPES.find((d) => d.key === dayType)?.label || "Planification d'activités"}
@@ -1495,7 +1496,7 @@ function HoraireView({
   scheduleRows, scheduleOps, kept, onBack, onContinue,
 }) {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-5xl mx-auto pl-14 pr-4 sm:px-4 py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Bâtir l'horaire</h1>
         <p className="text-[#7A7362] mt-1 max-w-2xl">
@@ -1707,7 +1708,7 @@ ${fichesHtml}
   };
 
   return (
-    <div className="print-root max-w-4xl mx-auto px-4 py-8">
+    <div className="print-root max-w-4xl mx-auto pl-14 pr-4 sm:px-4 py-8">
       <button onClick={onBack} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52] mb-4">
         <ChevronLeft size={16} /> Retour
       </button>
@@ -2188,7 +2189,7 @@ ${fichesHtml.join("")}
       `}</style>
 
       {wtab === "configurer" ? (
-        <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+        <div className="max-w-6xl mx-auto pl-14 pr-4 sm:px-4 py-8 space-y-6">
           <div>
             <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Bâtir la semaine</h1>
             <p className="text-[#7A7362] mt-1 max-w-2xl">
@@ -2466,7 +2467,7 @@ ${fichesHtml.join("")}
           </div>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto pl-14 pr-4 sm:px-4 py-8">
           <button onClick={() => setWtab("configurer")} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52] mb-4">
             <ChevronLeft size={16} /> Retour
           </button>
@@ -2631,7 +2632,7 @@ function BibliothequeView({ onBack }) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-5xl mx-auto pl-14 pr-4 sm:px-4 py-8 space-y-6">
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52]">
         <ChevronLeft size={16} /> Retour
       </button>

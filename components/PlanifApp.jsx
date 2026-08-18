@@ -401,7 +401,7 @@ function ColoringPrintPage({ formes, theme, customImages }) {
       <>
         {images.map((img, i) => (
           <div key={i} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Fiche de transition {images.length > 1 ? `(${i + 1}/${images.length})` : ""}</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Fiche de transition {images.length > 1 ? `(${i + 1}/${images.length})` : ""}</p>
             <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
             <div className="leaf-underline w-16 mt-3 mb-6" />
             <div className="flex items-center justify-center">
@@ -415,7 +415,7 @@ function ColoringPrintPage({ formes, theme, customImages }) {
 
   return (
     <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Fiche de transition</p>
+      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Fiche de transition</p>
       <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
       <div className="leaf-underline w-16 mt-3 mb-6" />
       <div className="grid grid-cols-2 gap-6">
@@ -433,7 +433,7 @@ function WordSearchPrintPage({ wordSearch, theme }) {
   if (!wordSearch || !wordSearch.grid) return null;
   return (
     <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Fiche de transition</p>
+      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Fiche de transition</p>
       <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Mots cachés — {theme || ""}</h2>
       <div className="leaf-underline w-16 mt-3 mb-6" />
       <table className="border-collapse mx-auto mb-6">
@@ -819,6 +819,7 @@ function IconBtn({ onClick, title, children, danger }) {
 // ================= APP =================
 export default function App() {
   const [tab, setTab] = useState("idees"); // idees | horaire | apercu
+  const [showBiblio, setShowBiblio] = useState(false);
 
   // ---- generator state ----
   const [theme, setTheme] = useState("Éveil de la nature");
@@ -1040,30 +1041,36 @@ export default function App() {
 
       {/* Top bar — scrolls together with the rest of the page */}
       <div className="no-print" style={{ background: COLORS.paper, borderBottom: "1px solid #E3DACB", borderTop: `3px solid ${COLORS.marine}` }}>
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-3 flex-wrap">
+          <span className="font-bold text-[26px]" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
+            Planificateur d'activités
+          </span>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.moss }}>
-              <Sparkles size={16} color="white" />
-            </div>
-            <span className="font-semibold text-[15px]" style={{ fontFamily: "Baloo 2, sans-serif" }}>
-              Planificateur d'activités éducatives
-            </span>
+            <button
+              onClick={() => setShowBiblio(true)}
+              className="text-[13px] font-bold text-white px-4 py-2 rounded-full"
+              style={{ background: COLORS.moss }}
+            >
+              Ma bibliothèque
+            </button>
+            <button
+              onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
+              className="text-[13px] font-bold text-[#7A7362] bg-white border border-[#E3DACB] px-4 py-2 rounded-full"
+            >
+              Se déconnecter
+            </button>
           </div>
-          <button
-            onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
-            className="text-xs font-semibold text-[#7A7362] hover:text-[#3C6E52] underline"
-          >
-            Se déconnecter
-          </button>
         </div>
         <div className="max-w-5xl mx-auto px-4 pb-3 flex flex-wrap gap-2">
           {DAY_TYPES.map((d) => (
-            <Chip key={d.key} active={dayType === d.key} onClick={() => applyDayType(d.key)}>{d.label}</Chip>
+            <Chip key={d.key} active={dayType === d.key} onClick={() => { setShowBiblio(false); applyDayType(d.key); }}>{d.label}</Chip>
           ))}
         </div>
       </div>
 
-      {dayType === "semaine" ? (
+      {showBiblio ? (
+        <BibliothequeView onBack={() => setShowBiblio(false)} />
+      ) : dayType === "semaine" ? (
         <WeeklyGridTool />
       ) : (
         <>
@@ -1113,6 +1120,11 @@ export default function App() {
           )}
         </>
       )}
+
+      {/* Logo PLANIF, tourné, fixé en bas à gauche */}
+      <div className="no-print" style={{ position: "fixed", left: -16, bottom: 45, width: 50, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 40 }}>
+        <img src="/logo-planif-vert.png" alt="PLANIF" style={{ height: 34, width: "auto", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
+      </div>
     </div>
   );
 }
@@ -1265,7 +1277,7 @@ function IdeesView(props) {
         )}
 
         <button onClick={generateBatch} disabled={loading || !theme.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold disabled:opacity-50" style={{ background: COLORS.moss }}>
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          {loading && <Loader2 size={16} className="animate-spin" />}
           {loading ? "Génération en cours…" : "Générer des idées"}
         </button>
         {error && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{error}</p>}
@@ -1400,13 +1412,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
       </div>
 
       <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362]">Amorce</p>
-          <button onClick={onGenerateAmorce} disabled={isGeneratingAmorce} className="text-[10px] font-semibold text-[#3C6E52] flex items-center gap-1 disabled:opacity-50">
-            {isGeneratingAmorce ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-            {idea.amorce ? "Régénérer" : "Générer"}
-          </button>
-        </div>
+        <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362] mb-1">Amorce</p>
         {idea.amorce ? (
           isEditing ? (
             <textarea value={idea.amorce} onChange={(e) => onUpdate({ amorce: e.target.value })} rows={3} className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#3C6E52]" />
@@ -1436,7 +1442,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         <ul className="space-y-1">
           {(idea.materiel || []).map((m, i) => (
             <li key={i} className="text-sm flex items-start gap-2">
-              <span style={{ color: COLORS.sun }}>•</span>
+              <span style={{ color: COLORS.marine }}>•</span>
               {isEditing ? (
                 <div className="flex-1 flex items-center gap-1">
                   <TextField value={m} onChange={(v) => onUpdateListField("materiel", i, v)} />
@@ -1609,6 +1615,8 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops }) {
 
 // ================= APERÇU / IMPRESSION =================
 function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, onBack }) {
+  const [savingBiblio, setSavingBiblio] = useState(false);
+  const [biblioSaved, setBiblioSaved] = useState(false);
   const openPrintableInNewTab = () => {
     const rowsHtml = computedRows.map((row) => {
       if (row.type === "rotation") {
@@ -1634,7 +1642,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
           : "—";
         return `<tr style="border-bottom:1px solid #EDE6D8;"><td style="padding:10px;font-weight:700;white-space:nowrap;vertical-align:top;">${escapeHtml(formatDateFr(d))}</td><td style="padding:10px;vertical-align:top;">${cellHtml}</td></tr>`;
       }).join("");
-      monthlyHtml = `<p style="color:#E3A63E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire mensuelle</p>
+      monthlyHtml = `<p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire mensuelle</p>
 <h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(theme) || "Thème du mois"}</h1>
 <table style="margin-bottom:24px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Date</th><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Activité</th></tr></thead><tbody>${monthlyRows}</tbody></table>
 <div style="page-break-before:always;"></div>`;
@@ -1644,7 +1652,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
       const etapes = (st.deroulement || []).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
       const materiel = (st.materiel || []).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
       return `<div style="page-break-before:always;padding:24px 0;">
-        <p style="color:#E3A63E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
+        <p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
         <h2 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <p style="color:#7A7362;">${escapeHtml(st.age)} · ${escapeHtml(st.duree)}</p>
         ${st.amorce ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(st.amorce)}</p>` : ""}
@@ -1656,7 +1664,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(theme) || "Planification"}</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}@media print{@page{margin:12mm;}}</style></head><body>
 ${monthlyHtml}
-<p style="color:#E3A63E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire de la journée</p>
+<p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire de la journée</p>
 <h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(theme) || "Thème de la journée"}</h1>
 ${dateLabel ? `<p style="color:#7A7362;">${escapeHtml(dateLabel)}</p>` : ""}
 <table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Heure</th>${headerCells}</tr></thead><tbody>${rowsHtml}</tbody></table>
@@ -1684,7 +1692,7 @@ ${fichesHtml}
       {isMercredi && mercredis.length > 0 && (
         <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
           <header className="mb-6">
-            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Horaire mensuelle</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Horaire mensuelle</p>
             <h1 className="text-3xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{theme || "Thème du mois"}</h1>
             <div className="leaf-underline w-16 mt-3" />
           </header>
@@ -1722,7 +1730,7 @@ ${fichesHtml}
       {/* Page 1: schedule */}
       <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
         <header className="mb-6">
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Horaire de la journée</p>
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Horaire de la journée</p>
           <h1 className="text-3xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{theme || "Thème de la journée"}</h1>
           {dateLabel && <p className="text-[#7A7362] mt-1">{dateLabel}</p>}
           <div className="leaf-underline w-16 mt-3" />
@@ -1771,7 +1779,7 @@ ${fichesHtml}
       {/* Page: material summary */}
       {kept.length > 0 && (
         <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Préparation</p>
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Préparation</p>
           <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Matériel</h2>
           <div className="leaf-underline w-16 mt-3 mb-5" />
 
@@ -1779,7 +1787,7 @@ ${fichesHtml}
             <ShoppingBag size={14} /> Liste de matériel combinée
           </h3>
           <ul className="text-sm space-y-1">
-            {materialList.map((m, i) => <li key={i} className="flex gap-2"><span style={{ color: COLORS.sun }}>•</span>{m}</li>)}
+            {materialList.map((m, i) => <li key={i} className="flex gap-2"><span style={{ color: COLORS.marine }}>•</span>{m}</li>)}
           </ul>
         </div>
       )}
@@ -1794,7 +1802,7 @@ ${fichesHtml}
       {/* One page per activity */}
       {kept.map((st) => (
         <div key={st.id} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>{st.lieu || "Plateau"}</p>
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>{st.lieu || "Plateau"}</p>
           <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{st.nom}</h2>
           <p className="text-[#7A7362] mt-0.5">{st.age} · {st.duree}</p>
           <div className="leaf-underline w-16 mt-3 mb-5" />
@@ -1810,7 +1818,7 @@ ${fichesHtml}
           <ul className="space-y-2 mb-5">
             {(st.deroulement || []).map((line, i) => (
               <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26] leading-relaxed">
-                <span className="shrink-0 font-bold" style={{ color: COLORS.sun }}>{i + 1}.</span>{line}
+                <span className="shrink-0 font-bold" style={{ color: COLORS.marine }}>{i + 1}.</span>{line}
               </li>
             ))}
           </ul>
@@ -1818,7 +1826,7 @@ ${fichesHtml}
           <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Matériel</h3>
           <ul className="space-y-1">
             {(st.materiel || []).map((m, i) => (
-              <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26]"><span style={{ color: COLORS.sun }}>•</span>{m}</li>
+              <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26]"><span style={{ color: COLORS.marine }}>•</span>{m}</li>
             ))}
           </ul>
         </div>
@@ -1827,6 +1835,27 @@ ${fichesHtml}
       <div className="no-print flex flex-wrap justify-end gap-2 pb-6">
         <button onClick={openPrintableInNewTab} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: COLORS.moss }}>
           <Printer size={14} /> Télécharger la version imprimable
+        </button>
+        <button
+          onClick={async () => {
+            setSavingBiblio(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase.from("library_items").insert({
+                user_id: user.id,
+                title: theme || "Sans titre",
+                payload: { theme, dateLabel, kept },
+              });
+            }
+            setSavingBiblio(false);
+            setBiblioSaved(true);
+            setTimeout(() => setBiblioSaved(false), 2000);
+          }}
+          disabled={savingBiblio || kept.length === 0}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 disabled:opacity-50"
+          style={{ color: COLORS.moss, borderColor: COLORS.moss }}
+        >
+          {savingBiblio ? "Enregistrement…" : biblioSaved ? "✓ Enregistré" : "Enregistrer dans ma bibliothèque"}
         </button>
       </div>
     </div>
@@ -1917,6 +1946,24 @@ function WeeklyGridTool() {
   const [theme, setTheme] = useState("");
 
   const [jours, setJours] = useState(() => ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"].map((name) => ({ id: nextId(), name, lieu: "" })));
+  const [savingLieux, setSavingLieux] = useState(false);
+  const [lieuxSaved, setLieuxSaved] = useState(false);
+  const [savingBiblio, setSavingBiblio] = useState(false);
+  const [biblioSaved, setBiblioSaved] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("user_settings").select("jours_lieux").eq("user_id", user.id).maybeSingle();
+      if (data?.jours_lieux?.length) {
+        setJours((cur) => cur.map((j) => {
+          const saved = data.jours_lieux.find((s) => s.name === j.name);
+          return saved ? { ...j, lieu: saved.lieu || "" } : j;
+        }));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [periodes, setPeriodes] = useState(WEEKLY_DEFAULT_PERIODES);
   const [selectedPeriodes, setSelectedPeriodes] = useState(WEEKLY_DEFAULT_PERIODES);
   const visiblePeriodes = periodes.filter((p) => selectedPeriodes.includes(p));
@@ -2071,7 +2118,7 @@ function WeeklyGridTool() {
       const etapes = (c.description || "").split("\n").filter((l) => l.trim()).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
       const materiel = (c.materiel || []).filter((m) => m.trim()).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
       fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
-        <p style="color:#E3A63E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
+        <p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
         <h2 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         ${c.domaines.length ? `<p style="color:#7A7362;">${c.domaines.map(escapeHtml).join(" · ")}</p>` : ""}
         ${c.amorce ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(c.amorce)}</p>` : ""}
@@ -2083,7 +2130,7 @@ function WeeklyGridTool() {
 
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Grille de planification — SDG</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
-<p style="color:#E3A63E;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
+<p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
 <h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(groupeNom) || "Grille de planification — SDG"}</h1>
 <p style="color:#7A7362;">Éducateur·trice : <strong>${escapeHtml(educatrice) || "—"}</strong> &nbsp;|&nbsp; Semaine : <strong>${escapeHtml(semaine) || "—"}</strong> &nbsp;|&nbsp; Thème : <strong>${escapeHtml(theme) || "—"}</strong></p>
 <table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Jour</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table>
@@ -2167,6 +2214,27 @@ ${fichesHtml.join("")}
               ))}
               <button onClick={addJour} className="flex items-center gap-1 text-sm font-semibold text-[#3C6E52]"><Plus size={14} /> Jour</button>
             </div>
+            <button
+              onClick={async () => {
+                setSavingLieux(true);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  await supabase.from("user_settings").upsert({
+                    user_id: user.id,
+                    jours_lieux: jours.map((j) => ({ name: j.name, lieu: j.lieu })),
+                    updated_at: new Date().toISOString(),
+                  });
+                }
+                setSavingLieux(false);
+                setLieuxSaved(true);
+                setTimeout(() => setLieuxSaved(false), 2000);
+              }}
+              disabled={savingLieux}
+              className="mt-3 w-full text-center text-sm font-semibold text-white py-2.5 rounded-lg disabled:opacity-50"
+              style={{ background: COLORS.moss }}
+            >
+              {savingLieux ? "Enregistrement…" : lieuxSaved ? "✓ Enregistré" : "Enregistrer les lieux"}
+            </button>
           </SectionCard>
 
           <SectionCard>
@@ -2190,7 +2258,7 @@ ${fichesHtml.join("")}
               className="mt-4 flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold disabled:opacity-50"
               style={{ background: COLORS.moss }}
             >
-              {loadingWeek ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {loadingWeek && <Loader2 size={16} className="animate-spin" />}
               {loadingWeek ? "Génération en cours…" : `Générer pour ${selectedPeriodes.length} période${selectedPeriodes.length > 1 ? "s" : ""} × ${jours.length} jours`}
             </button>
             {error && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{error}</p>}
@@ -2248,17 +2316,7 @@ ${fichesHtml.join("")}
                           </button>
                           {expandedCell === key && (
                             <div className="mt-2 space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7362]">Amorce</label>
-                                <button
-                                  onClick={() => generateAmorceForCell(jourObj.name, periode)}
-                                  disabled={generatingAmorceKey === key}
-                                  className="text-[10px] font-semibold text-[#3C6E52] flex items-center gap-1 disabled:opacity-50"
-                                >
-                                  {generatingAmorceKey === key ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                                  {cell.amorce ? "Régénérer" : "Générer"}
-                                </button>
-                              </div>
+                              <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7362] block">Amorce</label>
                               {cell.amorce ? (
                                 <textarea
                                   value={cell.amorce}
@@ -2318,15 +2376,17 @@ ${fichesHtml.join("")}
             </label>
             {transitionEnabled && (
               <div className="mt-3 ml-6">
-                <button
-                  onClick={generateTransition}
-                  disabled={loadingTransition || !theme.trim()}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
-                  style={{ background: COLORS.moss }}
-                >
-                  {loadingTransition ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                  {loadingTransition ? "Génération en cours…" : transitionData ? "Régénérer" : "Générer les fiches"}
-                </button>
+                {!transitionData && (
+                  <button
+                    onClick={generateTransition}
+                    disabled={loadingTransition || !theme.trim()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
+                    style={{ background: COLORS.moss }}
+                  >
+                    {loadingTransition && <Loader2 size={15} className="animate-spin" />}
+                    {loadingTransition ? "Génération en cours…" : "Générer les fiches"}
+                  </button>
+                )}
                 {transitionError && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{transitionError}</p>}
                 {transitionData && !transitionError && (
                   <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
@@ -2341,10 +2401,16 @@ ${fichesHtml.join("")}
                     <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
                     {transitionData.imagePrompts?.length > 0 && (
                       <div className="pt-2 border-t border-[#EDE6D8]">
-                        <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré (à coller dans un générateur d'images gratuit — Adobe Firefly, educol.net, ColoringBook.AI…) :</p>
+                        <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré, collez une description sur educol.net :</p>
                         {transitionData.imagePrompts.map((p, i) => (
-                          <p key={i} className="text-xs text-[#2B2A26] italic mt-1 bg-[#FBF3E4] rounded px-2 py-1">« {p} »</p>
+                          <div key={i} className="flex items-center gap-2 bg-[#FBF3E4] rounded px-2 py-1 mt-1">
+                            <p className="text-xs text-[#2B2A26] italic flex-1">« {p} »</p>
+                            <button onClick={() => navigator.clipboard.writeText(p)} className="text-[10px] font-bold text-[#3C6E52] bg-white border border-[#DCD3C2] rounded px-2 py-1 shrink-0">Copier</button>
+                          </div>
                         ))}
+                        <a href="https://educol.net" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-white px-3 py-1.5 rounded-lg" style={{ background: COLORS.moss }}>
+                          Ouvrir educol.net ↗
+                        </a>
                         <div className="mt-2">
                           <label className="text-xs font-semibold text-[#3C6E52] cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DCD3C2] hover:border-[#3C6E52]">
                             <Sparkles size={12} /> Importer une ou plusieurs images
@@ -2388,10 +2454,11 @@ ${fichesHtml.join("")}
           </button>
           {visiblePeriodes.length > 0 && (
             <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-6 sm:p-8 mb-6" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>Résumé de la semaine</p>
-              <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{groupeNom || "Grille de planification — SDG"}</h1>
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Résumé de la semaine</p>
+              <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Grille de planification — SDG</h1>
               <div className="leaf-underline w-16 mt-2 mb-4" />
               <div className="flex flex-wrap gap-x-6 gap-y-1 mb-5 text-sm">
+                <div><span className="text-[#7A7362]">Groupe :</span> <strong>{groupeNom || "—"}</strong></div>
                 <div><span className="text-[#7A7362]">Éducateur·trice :</span> <strong>{educatrice || "—"}</strong></div>
                 <div><span className="text-[#7A7362]">Semaine :</span> <strong>{semaine || "—"}</strong></div>
                 <div><span className="text-[#7A7362]">Thème :</span> <strong>{theme || "—"}</strong></div>
@@ -2446,7 +2513,7 @@ ${fichesHtml.join("")}
 
           {fiches.map(({ key, jour, periode, cell }) => (
             <div key={key} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-6 sm:p-8 mb-6" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
-              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.sun }}>{jour} · {periode}{cell.local ? ` · ${cell.local}` : ""}{cell.duree ? ` · ${cell.duree}` : ""}</p>
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>{jour} · {periode}{cell.local ? ` · ${cell.local}` : ""}{cell.duree ? ` · ${cell.duree}` : ""}</p>
               <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{cell.activite}</h2>
               {cell.domaines.length > 0 && <p className="text-[#7A7362] mt-1">{cell.domaines.join(" · ")}</p>}
               <div className="leaf-underline w-16 mt-3 mb-5" />
@@ -2462,7 +2529,7 @@ ${fichesHtml.join("")}
                   <ul className="space-y-2 mb-5">
                     {cell.description.split("\n").filter((l) => l.trim()).map((line, i) => (
                       <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26] leading-relaxed">
-                        <span className="shrink-0 font-bold" style={{ color: COLORS.sun }}>{i + 1}.</span>{line}
+                        <span className="shrink-0 font-bold" style={{ color: COLORS.marine }}>{i + 1}.</span>{line}
                       </li>
                     ))}
                   </ul>
@@ -2473,7 +2540,7 @@ ${fichesHtml.join("")}
                   <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Matériel</h3>
                   <ul className="space-y-1">
                     {cell.materiel.filter((m) => m.trim()).map((m, i) => (
-                      <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26]"><span style={{ color: COLORS.sun }}>•</span>{m}</li>
+                      <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26]"><span style={{ color: COLORS.marine }}>•</span>{m}</li>
                     ))}
                   </ul>
                 </>
@@ -2486,7 +2553,102 @@ ${fichesHtml.join("")}
             <button onClick={openPrintableInNewTab} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white" style={{ background: COLORS.moss }}>
               <Printer size={14} /> Télécharger la version imprimable
             </button>
+            <button
+              onClick={async () => {
+                setSavingBiblio(true);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  await supabase.from("library_items").insert({
+                    user_id: user.id,
+                    title: groupeNom || theme || "Sans titre",
+                    payload: { groupeNom, educatrice, semaine, theme, jours, cells },
+                  });
+                }
+                setSavingBiblio(false);
+                setBiblioSaved(true);
+                setTimeout(() => setBiblioSaved(false), 2000);
+              }}
+              disabled={savingBiblio}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 disabled:opacity-50"
+              style={{ color: COLORS.moss, borderColor: COLORS.moss }}
+            >
+              {savingBiblio ? "Enregistrement…" : biblioSaved ? "✓ Enregistré" : "Enregistrer dans ma bibliothèque"}
+            </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ================= BIBLIOTHÈQUE (activités sauvegardées) =================
+function BibliothequeView({ onBack }) {
+  const [libraryName, setLibraryName] = useState("Ma bibliothèque");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data: settings } = await supabase.from("user_settings").select("library_name").eq("user_id", user.id).maybeSingle();
+      if (settings?.library_name) setLibraryName(settings.library_name);
+      const { data: libItems } = await supabase.from("library_items").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      setItems(libItems || []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const saveLibraryName = async (name) => {
+    setLibraryName(name);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("user_settings").upsert({ user_id: user.id, library_name: name, updated_at: new Date().toISOString() });
+  };
+
+  const removeItem = async (id) => {
+    setItems((cur) => cur.filter((i) => i.id !== id));
+    await supabase.from("library_items").delete().eq("id", id);
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52]">
+        <ChevronLeft size={16} /> Retour
+      </button>
+
+      <div className="max-w-md">
+        <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide">Nom de votre bibliothèque</label>
+        <div className="mt-1">
+          <input
+            value={libraryName}
+            onChange={(e) => setLibraryName(e.target.value)}
+            onBlur={(e) => saveLibraryName(e.target.value)}
+            className="w-full bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-[#3C6E52]"
+            style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-[#7A7362]">Chargement…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-[#7A7362]">
+          Aucune planification enregistrée pour l'instant. Depuis l'aperçu imprimable, cliquez « Enregistrer dans ma bibliothèque » pour en ajouter une.
+        </p>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {items.map((item) => (
+            <div key={item.id} className="bg-white border border-[#E3DACB] rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{item.title}</h4>
+                <button onClick={() => removeItem(item.id)} className="text-[#B3A990] hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
+              </div>
+              <p className="text-xs text-[#7A7362] mt-1">
+                Enregistrée le {new Date(item.created_at).toLocaleDateString("fr-CA")}
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </div>

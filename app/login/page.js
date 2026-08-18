@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setError("");
@@ -26,6 +27,7 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -52,7 +54,7 @@ export default function LoginPage() {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Nunito:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700&display=swap"
         rel="stylesheet"
       />
       <style>{`
@@ -63,15 +65,15 @@ export default function LoginPage() {
           --encre-claire: #6B9179;
           --dore: #10192B;
           --dore-fonce: #060B15;
-          --jaune: #E3A63E;
           font-family: 'Nunito', sans-serif;
           color: var(--encre);
           display:flex;
+          flex-direction: column;
           min-height:100vh;
+          position: relative;
         }
         .planif-login-root *{ box-sizing: border-box; }
         .panneau-marque{
-          flex: 1 1 46%;
           background: var(--encre);
           background-image:
             linear-gradient(var(--encre), var(--encre)),
@@ -79,82 +81,68 @@ export default function LoginPage() {
           color: var(--papier);
           display:flex;
           flex-direction:column;
-          justify-content: space-between;
-          padding: 48px;
-          position: relative;
+          align-items: center;
+          text-align: center;
+          padding: 40px 28px 44px;
         }
         .contenu-marque{
-          max-width: 420px;
-          margin-top: 40px;
+          max-width: 460px;
         }
         .contenu-marque h1{
           font-family:'Baloo 2', sans-serif;
           font-weight:700;
-          font-size: clamp(28px, 3.4vw, 38px);
-          line-height: 1.22;
-          margin-bottom: 18px;
-        }
-        .contenu-marque p{
-          font-size: 15px;
-          line-height: 1.6;
-          color: rgba(246,241,231,0.75);
-          max-width: 340px;
+          font-size: clamp(26px, 5vw, 34px);
+          line-height: 1.2;
         }
         .beneficies{
-          display:flex;
+          display:inline-flex;
           flex-direction:column;
           gap: 14px;
-          margin-top: 32px;
+          margin-top: 28px;
+          text-align: left;
         }
         .beneficies .item{
-          display:flex;
-          align-items:center;
-          gap: 12px;
           font-size: 14px;
-          color: rgba(246,241,231,0.9);
-        }
-        .beneficies .puce{
-          font-family:'Baloo 2', sans-serif;
-          color: var(--jaune);
-          font-weight:600;
+          line-height: 1.45;
+          color: rgba(246,241,231,0.92);
+          max-width: 340px;
         }
         .panneau-form{
-          flex: 1 1 54%;
+          flex: 1;
           background: var(--papier);
           display:flex;
-          align-items:center;
+          align-items:flex-start;
           justify-content:center;
-          padding: 40px;
+          padding: 32px 20px 130px;
         }
         .carte{
           width: 100%;
           max-width: 380px;
           background: var(--carte);
           border-radius: 4px;
-          padding: 44px 38px;
+          padding: 40px 32px;
           box-shadow: 0 20px 50px -22px rgba(36,56,74,0.25);
           border: 1px solid rgba(36,56,74,0.08);
           border-top: 3px solid var(--dore);
+          margin-top: -28px;
         }
-        .carte h2{
+        .titre-connexion{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+        .titre-connexion h2{
           font-family:'Baloo 2', sans-serif;
           font-weight:500;
           font-size: 26px;
           color: var(--encre);
-          margin-bottom: 6px;
-          text-align: center;
-        }
-        .ligne-decor{
-          height: 3px;
-          width: 48px;
-          background: linear-gradient(90deg, var(--jaune), var(--dore));
-          border-radius: 100px;
-          margin: 0 auto 28px;
         }
         .carte .sous-titre{
           font-size: 14px;
           color: #7A7166;
-          margin-bottom: 18px;
+          margin-bottom: 28px;
           text-align: center;
         }
         .champ{
@@ -199,6 +187,7 @@ export default function LoginPage() {
           font-family: 'Nunito', sans-serif;
         }
         .ligne-oubli button:hover{ text-decoration: underline; }
+        .ligne-oubli button:disabled{ opacity: 0.5; cursor: default; }
         .btn-connexion{
           width:100%;
           padding: 14px;
@@ -244,12 +233,22 @@ export default function LoginPage() {
           margin-bottom: 16px;
           text-align: center;
         }
-        @media (max-width: 820px){
-          .planif-login-root{ flex-direction: column; }
-          .panneau-marque{ padding: 32px 28px; background-image: linear-gradient(var(--encre), var(--encre)); }
-          .contenu-marque p{ max-width: 100%; }
-          .beneficies{ margin-top: 22px; }
-          .panneau-form{ padding: 32px 20px 48px; }
+        .logo-bas-wrap{
+          position: fixed;
+          left: -16px;
+          bottom: 45px;
+          width: 50px;
+          height: 130px;
+          display:flex;
+          align-items:flex-end;
+          justify-content:center;
+        }
+        .logo-bas-wrap img{
+          height: 34px;
+          width:auto;
+          display:block;
+          transform: rotate(90deg);
+          transform-origin: center center;
         }
       `}</style>
 
@@ -257,25 +256,26 @@ export default function LoginPage() {
         <div className="panneau-marque">
           <div className="contenu-marque">
             <h1>Planificateur d&apos;activités</h1>
-            <p>Simple, rapide et efficace.</p>
 
             <div className="beneficies">
-              <div className="item"><span className="puce">—</span> Activités, matériel et horaires créés en quelques clics</div>
-              <div className="item"><span className="puce">—</span> Contenu pédagogique prêt à utiliser</div>
-              <div className="item"><span className="puce">—</span> Plus de temps pour les enfants, moins de temps de préparation</div>
+              <div className="item">Conception d&apos;activités complète</div>
+              <div className="item">Horaire et liste de matériel créés en quelques clics</div>
+              <div className="item">Contenu pédagogique prêt à imprimer</div>
+              <div className="item">Un outil simple et efficace pour rentabiliser votre temps</div>
             </div>
           </div>
         </div>
 
         <div className="panneau-form">
           <div className="carte">
-            <h2>{mode === "login" ? "Connexion" : "Créer un compte"}</h2>
+            <div className="titre-connexion">
+              <h2>Connexion à PLANIF</h2>
+            </div>
             <div className="sous-titre">
               {mode === "login"
-                ? "Votre outil de planification d'activités éducatives."
+                ? "Votre allié pour des journées éducatives bien pensées."
                 : "Vos données seront sauvegardées pour vous seule."}
             </div>
-            <div className="ligne-decor" />
 
             <form onSubmit={handleSubmit}>
               <div className="champ">
@@ -302,7 +302,9 @@ export default function LoginPage() {
 
               {mode === "login" && (
                 <div className="ligne-oubli">
-                  <button type="button" onClick={handleForgotPassword} disabled={loading || !email}>Mot de passe oublié ?</button>
+                  <button type="button" onClick={handleForgotPassword} disabled={loading || !email}>
+                    Mot de passe oublié ?
+                  </button>
                 </div>
               )}
 
@@ -330,6 +332,10 @@ export default function LoginPage() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="logo-bas-wrap">
+          <img src="/logo-planif-vert.png" alt="PLANIF" />
         </div>
       </div>
     </>

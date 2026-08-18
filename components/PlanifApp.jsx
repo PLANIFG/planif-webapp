@@ -1143,7 +1143,7 @@ export default function App() {
 
       {/* Logo PLANIF, tourné, fixé en bas à gauche */}
       <div className="no-print" style={{ position: "fixed", left: 8, bottom: 45, width: 60, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "visible", zIndex: 40 }}>
-        <img src="/logo-planif-vert.png" alt="PLANIF" style={{ height: 34, width: "auto", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
+        <img src="/logo-planif-vert.png" alt="PLANIF" style={{ height: 34, width: 111, objectFit: "contain", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
       </div>
     </div>
   );

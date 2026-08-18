@@ -1179,7 +1179,7 @@ function IdeesView(props) {
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
-          Planification d'activités
+          {DAY_TYPES.find((d) => d.key === dayType)?.label || "Planification d'activités"}
         </h1>
         <p className="text-[#7A7362] mt-1 max-w-2xl">
           Précisez le thème, les groupes d'âge et les lieux disponibles. Générez, ajustez,
@@ -1366,7 +1366,7 @@ function IdeesView(props) {
             {transitionData && !transitionError && (
               <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
                 <p className="text-xs font-bold text-[#3C6E52] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
-                <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
+                <p className="text-xs text-[#7A7362] mb-2">Mots cachés et coloriage.</p>
                 {transitionData.imagePrompts?.length > 0 && (
                   <div className="pt-2 border-t border-[#EDE6D8]">
                     <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré :</p>
@@ -1681,8 +1681,10 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
       </div>`;
     }).join("");
 
+    const logoUrl = `${window.location.origin}/logo-planif-vert.png`;
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(theme) || "Planification"}</title>
-<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}@media print{@page{margin:12mm;}}</style></head><body>
+<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{margin:12mm;}}</style></head><body>
+<img src="${logoUrl}" class="print-logo" alt="PLANIF" />
 ${monthlyHtml}
 <p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire de la journée</p>
 <h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(theme) || "Thème de la journée"}</h1>
@@ -2148,8 +2150,10 @@ function WeeklyGridTool() {
       </div>`);
     }));
 
+    const logoUrl = `${window.location.origin}/logo-planif-vert.png`;
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Grille de planification — SDG</title>
-<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
+<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
+<img src="${logoUrl}" class="print-logo" alt="PLANIF" />
 <p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
 <h1 style="color:#2A4E3B;margin:4px 0 12px;">Grille de planification — SDG</h1>
 <p style="color:#7A7362;">Groupe : <strong>${escapeHtml(groupeNom) || "—"}</strong> &nbsp;|&nbsp; Éducateur·trice : <strong>${escapeHtml(educatrice) || "—"}</strong> &nbsp;|&nbsp; Semaine : <strong>${escapeHtml(semaine) || "—"}</strong> &nbsp;|&nbsp; Thème : <strong>${escapeHtml(theme) || "—"}</strong></p>
@@ -2162,7 +2166,7 @@ ${fichesHtml.join("")}
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${(groupeNom || semaine || "grille-hebdomadaire").replace(/[^a-z0-9]+/gi, "-")}.html`;
+    link.download = `${(theme || groupeNom || semaine || "grille-hebdomadaire").replace(/[^a-z0-9]+/gi, "-")}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -2411,7 +2415,7 @@ ${fichesHtml.join("")}
                 {transitionData && !transitionError && (
                   <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
                     <p className="text-xs font-bold text-[#3C6E52] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
-                    <p className="text-xs text-[#7A7362] mb-2">{transitionData.wordSearch.placed.length} mots cachés : {transitionData.wordSearch.placed.join(", ")}</p>
+                    <p className="text-xs text-[#7A7362] mb-2">Mots cachés et coloriage.</p>
                     {transitionData.imagePrompts?.length > 0 && (
                       <div className="pt-2 border-t border-[#EDE6D8]">
                         <p className="text-xs font-bold text-[#7A7362] mb-1">Pour un vrai coloriage illustré :</p>
@@ -2659,7 +2663,7 @@ function BibliothequeView({ onBack }) {
             const keptList = Array.isArray(p.kept) ? p.kept : null;
             const joursList = Array.isArray(p.jours) ? p.jours : null;
             return (
-              <div key={item.id} className="bg-white border border-[#E3DACB] rounded-2xl p-4">
+              <div key={item.id} className={`bg-white border border-[#E3DACB] rounded-2xl p-4 ${isOpen ? "sm:col-span-2" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{item.title}</h4>
                   <button onClick={() => removeItem(item.id)} className="text-[#B3A990] hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
@@ -2674,34 +2678,61 @@ function BibliothequeView({ onBack }) {
                   {isOpen ? "▲ Cacher le contenu" : "▼ Voir le contenu"}
                 </button>
                 {isOpen && (
-                  <div className="mt-3 pt-3 border-t border-[#EDE6D8] space-y-2">
+                  <div className="mt-3 pt-3 border-t border-[#EDE6D8] space-y-4">
+                    {p.dateLabel && <p className="text-xs text-[#7A7362]">Date : {p.dateLabel}</p>}
+                    {(p.educatrice || p.semaine) && (
+                      <p className="text-xs text-[#7A7362]">
+                        {p.educatrice && <>Éducateur·trice : <strong>{p.educatrice}</strong> </>}
+                        {p.semaine && <> · Semaine : <strong>{p.semaine}</strong></>}
+                      </p>
+                    )}
                     {keptList && keptList.length > 0 && (
-                      <ul className="space-y-1.5">
+                      <div className="space-y-3">
                         {keptList.map((a, i) => (
-                          <li key={i} className="text-sm">
-                            <span className="font-semibold">{a.nom}</span>
-                            {(a.lieu || a.age) && <span className="text-xs text-[#7A7362]"> — {[a.lieu, a.age].filter(Boolean).join(" · ")}</span>}
-                          </li>
+                          <div key={i} className="border border-[#EDE6D8] rounded-xl p-3">
+                            <p className="font-semibold text-sm">{a.nom}</p>
+                            <p className="text-xs text-[#7A7362] mb-1.5">{[a.lieu, a.age, a.duree].filter(Boolean).join(" · ")}</p>
+                            {a.amorce && <p className="text-xs italic mb-1.5">{a.amorce}</p>}
+                            {a.deroulement?.length > 0 && (
+                              <ol className="text-xs space-y-0.5 mb-1.5">
+                                {a.deroulement.map((d, di) => <li key={di}>{di + 1}. {d}</li>)}
+                              </ol>
+                            )}
+                            {a.materiel?.length > 0 && (
+                              <p className="text-xs text-[#7A7362]">Matériel : {a.materiel.join(", ")}</p>
+                            )}
+                          </div>
                         ))}
-                      </ul>
+                      </div>
                     )}
                     {joursList && joursList.length > 0 && (
-                      <ul className="space-y-1.5">
+                      <div className="space-y-3">
                         {joursList.map((j, i) => {
                           const dayCells = p.cells
                             ? Object.entries(p.cells).filter(([key]) => key.startsWith(`${j.name}__`))
                             : [];
                           return (
-                            <li key={i} className="text-sm">
-                              <span className="font-semibold">{j.name}</span>
-                              {j.lieu && <span className="text-xs text-[#7A7362]"> — {j.lieu}</span>}
+                            <div key={i} className="border border-[#EDE6D8] rounded-xl p-3">
+                              <p className="font-semibold text-sm">{j.name}{j.lieu && <span className="font-normal text-xs text-[#7A7362]"> — {j.lieu}</span>}</p>
                               {dayCells.map(([key, cell], ci) => cell?.activite && (
-                                <div key={ci} className="text-xs text-[#7A7362] pl-3">• {cell.activite}</div>
+                                <div key={ci} className="mt-2 pt-2 border-t border-[#EDE6D8] first:mt-0 first:pt-0 first:border-0">
+                                  <p className="text-sm font-medium">{cell.activite}</p>
+                                  <p className="text-xs text-[#7A7362] mb-1">{[cell.local, cell.duree].filter(Boolean).join(" · ")}</p>
+                                  {cell.amorce && <p className="text-xs italic mb-1">{cell.amorce}</p>}
+                                  {cell.description && (
+                                    <ol className="text-xs space-y-0.5 mb-1">
+                                      {cell.description.split("\n").filter((l) => l.trim()).map((d, di) => <li key={di}>{di + 1}. {d}</li>)}
+                                    </ol>
+                                  )}
+                                  {cell.materiel?.filter((m) => m.trim()).length > 0 && (
+                                    <p className="text-xs text-[#7A7362]">Matériel : {cell.materiel.filter((m) => m.trim()).join(", ")}</p>
+                                  )}
+                                </div>
                               ))}
-                            </li>
+                            </div>
                           );
                         })}
-                      </ul>
+                      </div>
                     )}
                     {!keptList && !joursList && (
                       <p className="text-xs text-[#B3A990]">Aucun détail disponible pour cette planification.</p>

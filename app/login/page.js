@@ -345,6 +345,14 @@ export default function LoginPage() {
                 </>
               )}
             </div>
+
+            <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "#B3A990" }}>
+              <a href="/a-propos" style={{ color: "#B3A990", textDecoration: "underline", margin: "0 6px" }}>À propos</a>
+              ·
+              <a href="/politique-confidentialite" style={{ color: "#B3A990", textDecoration: "underline", margin: "0 6px" }}>Politique de confidentialité</a>
+              ·
+              <a href="/conditions-utilisation" style={{ color: "#B3A990", textDecoration: "underline", margin: "0 6px" }}>Conditions d'utilisation</a>
+            </div>
           </div>
         </div>
 

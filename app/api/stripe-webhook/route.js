@@ -1,65 +1,67 @@
-import { stripe } from "../../../lib/stripe";
+// app/api/generate/route.js
+// EXEMPLE D'INTÉGRATION — à répéter dans CHACUNE de tes routes qui appellent
+// l'API Anthropic (hebdomadaire, journée pédagogique, concertation, mercredi
+// maternelle). Le principe est le même partout : vérifier/consommer le quota
+// AVANT l'appel à askClaude, jamais après.
+
+import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { tryConsumeGeneration } from "../../../lib/generationLimits";
+// import { askClaude } from "@/lib/askClaude"; // ton helper existant
 
-// Stripe envoie ici automatiquement les événements (paiement réussi,
-// annulation, échec de carte, etc.) — c'est ce qui garde Supabase à jour
-// sans que personne n'ait à intervenir manuellement.
 export async function POST(request) {
-  const sig = request.headers.get("stripe-signature");
-  const rawBody = await request.text();
+  const supabase = createRouteHandlerClient({ cookies });
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    return Response.json({ error: `Signature webhook invalide : ${err.message}` }, { status: 400 });
+  if (!session) {
+    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
+  // Étape 1 — vérifie ET réserve une génération avant tout appel coûteux à l'API.
+  // Atomique côté DB : deux clics simultanés ne peuvent pas tous les deux passer
+  // si un seul crédit reste au compteur.
   const db = supabaseAdmin();
+  const quota = await tryConsumeGeneration(db, session.user.id);
 
-  try {
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object;
-        const userId = session.client_reference_id || session.metadata?.userId;
-        const plan = session.metadata?.plan;
-        if (userId) {
-          await db.from("subscriptions").upsert({
-            user_id: userId,
-            stripe_customer_id: session.customer,
-            stripe_subscription_id: session.subscription,
-            plan,
-            status: "trialing",
-            updated_at: new Date().toISOString(),
-          });
-        }
-        break;
-      }
-      case "customer.subscription.updated":
-      case "customer.subscription.deleted": {
-        const sub = event.data.object;
-        const userId = sub.metadata?.userId;
-        let status = "canceled";
-        if (sub.status === "active") status = "active";
-        else if (sub.status === "trialing") status = "trialing";
-        else if (sub.status === "past_due") status = "past_due";
-        if (userId) {
-          await db.from("subscriptions").upsert({
-            user_id: userId,
-            stripe_subscription_id: sub.id,
-            status,
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        }
-        break;
-      }
-      default:
-        break; // autres événements ignorés
-    }
-  } catch (e) {
-    return Response.json({ error: e.message }, { status: 500 });
+  if (!quota.allowed) {
+    const message = quota.error
+      ? "Impossible de vérifier ton quota pour le moment. Réessaie dans un instant."
+      : `Tu as atteint ta limite de ${quota.generationLimit} générations pour ce cycle. ` +
+        `Ton quota sera renouvelé le ${new Date(quota.periodEnd).toLocaleDateString("fr-CA")}.`;
+
+    return NextResponse.json(
+      {
+        error: message,
+        generationsUsed: quota.generationsUsed,
+        generationLimit: quota.generationLimit,
+      },
+      { status: 429 } // 429 = Too Many Requests, code standard pour un quota dépassé
+    );
   }
 
-  return Response.json({ received: true });
+  // Étape 2 — le quota est réservé, on peut appeler l'API Anthropic normalement.
+  try {
+    const body = await request.json();
+    // const result = await askClaude(buildBatchPrompt(body));
+    // return NextResponse.json(result);
+
+    return NextResponse.json({
+      // ... ta réponse habituelle
+      quotaInfo: {
+        generationsUsed: quota.generationsUsed,
+        generationLimit: quota.generationLimit,
+      },
+    });
+  } catch (error) {
+    // Note : le quota a déjà été décompté même si la génération échoue ensuite.
+    // C'est un choix voulu (protège contre l'abus par appels répétés qui échouent
+    // volontairement) — mais si tu préfères rembourser en cas d'erreur serveur,
+    // ajoute ici un appel qui décrémente generations_used de 1.
+    console.error("Erreur génération:", error);
+    return NextResponse.json({ error: "Erreur de génération" }, { status: 500 });
+  }
 }

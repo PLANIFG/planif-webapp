@@ -67,7 +67,8 @@ export async function POST(request) {
     // Le webhook Stripe (customer.subscription.updated / invoice.payment_succeeded)
     // viendra ajuster le plafond au vrai plan (20 ou 200) une fois l'essai terminé
     // et le premier paiement confirmé.
-    await supabaseAdmin.from("subscriptions").upsert(
+    const db = supabaseAdmin();
+    await db.from("subscriptions").upsert(
       {
         user_id: userId,
         status: "trialing",

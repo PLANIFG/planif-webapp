@@ -1,3 +1,543 @@
+"use client";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
+import {
+  Sparkles, Plus, Trash2, RefreshCw, Loader2, ChevronRight, ChevronLeft,
+  MapPin, Users, Wallet, ShoppingBag, Check, X, Pencil, Printer,
+  LayoutGrid, Eye, CalendarDays
+} from "lucide-react";
+
+// ---------- Design tokens ----------
+const COLORS = {
+  paper: "#FBF8F2",
+  moss: "#3C6E52",
+  mossDark: "#2A4E3B",
+  sun: "#E3A63E",
+  ink: "#2B2A26",
+  sage: "#E4EEE4",
+  danger: "#C4523A",
+  marine: "#10192B",
+};
+const FONT_IMPORT_URL =
+  "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap";
+
+const DEFAULT_LIEUX = ["Gymnase", "Cuisine", "Labo créatif", "Cour intérieure"];
+const AGES = ["4-6 ans", "7-9 ans", "10-12 ans"];
+const MATERNELLE_AGES = ["4 ans", "5 ans"];
+
+// When all three age groups are selected together, the activities should
+// work as ONE shared multi-age activity (not something tailored to a
+// single group) — this line is inserted into the prompt in that case.
+function agesInstruction(ages) {
+  if (ages && ages.length === AGES.length && AGES.every((a) => ages.includes(a))) {
+    return "\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — le groupe est donc MULTI-ÂGE (4-12 ans réunis). Conçois des activités qui fonctionnent bien pour toutes ces tranches d'âge EN MÊME TEMPS (rôles ou niveaux de difficulté adaptables au sein d'une même activité), pas des activités pensées pour un seul groupe d'âge à la fois.\n";
+  }
+  return "";
+}
+
+let uid = 0;
+const nextId = () => `id_${++uid}_${Math.random().toString(36).slice(2, 7)}`;
+const toggle = (arr, val) => (arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
+
+const DEFAULT_GROUPS = ["Groupe A", "Groupe B", "Groupe C"];
+
+// Unified, ordered schedule: each row is one of:
+//  - type "fixe"     -> same label for every group (accueil, collation, extérieur…)
+//  - type "rotation" -> filled automatically from the kept activities
+//  - type "diner"    -> one label per group (maisonnées)
+function fullDayRows() {
+  return [
+    { id: nextId(), time: "7 h 00 – 8 h 30", type: "fixe", label: "Accueil, jeux extérieurs ou libres" },
+    { id: nextId(), time: "8 h 30 – 9 h 00", type: "fixe", label: "Collation" },
+    { id: nextId(), time: "9 h 00 – 10 h 00", type: "rotation" },
+    { id: nextId(), time: "10 h 00 – 11 h 00", type: "rotation" },
+    { id: nextId(), time: "11 h 00 – 12 h 00", type: "fixe", label: "Extérieur" },
+    { id: nextId(), time: "12 h 00 – 13 h 00", type: "diner", labels: ["Dîner - Maisonnée 1", "Dîner - Maisonnée 2", "Dîner - Maisonnée 3"] },
+    { id: nextId(), time: "13 h 00 – 14 h 00", type: "rotation" },
+    { id: nextId(), time: "14 h 00 – 14 h 30", type: "fixe", label: "Collation" },
+    { id: nextId(), time: "15 h 00 – 17 h 30", type: "fixe", label: "Jeux extérieurs" },
+  ];
+}
+function concertationRows() {
+  return [
+    { id: nextId(), time: "13 h 00 – 14 h 00", type: "rotation" },
+    { id: nextId(), time: "14 h 00 – 15 h 00", type: "rotation" },
+    { id: nextId(), time: "15 h 00 – 15 h 30", type: "fixe", label: "Collation" },
+    { id: nextId(), time: "15 h 30 – 17 h 30", type: "fixe", label: "Jeux extérieurs" },
+  ];
+}
+function mercrediMaternelleRows(activitesParJour = 1) {
+  const rotationRows =
+    activitesParJour >= 2
+      ? [
+          { id: nextId(), time: "13 h 30 – 14 h 00", type: "rotation" },
+          { id: nextId(), time: "14 h 00 – 14 h 30", type: "rotation" },
+        ]
+      : [{ id: nextId(), time: "13 h 30 – 14 h 30", type: "rotation" }];
+  return [
+    { id: nextId(), time: "13 h 00 – 13 h 30", type: "fixe", label: "Accueil, détente / retour au calme" },
+    ...rotationRows,
+    { id: nextId(), time: "14 h 30 – 15 h 00", type: "fixe", label: "Collation" },
+    { id: nextId(), time: "15 h 00 – 17 h 30", type: "fixe", label: "Jeux extérieurs" },
+  ];
+}
+
+const DAY_TYPES = [
+  { key: "semaine", label: "Planification hebdomadaire", build: null },
+  { key: "pedagogique", label: "Journée pédagogique", build: fullDayRows },
+  { key: "concertation", label: "Après-midi de concertation", build: concertationRows },
+  { key: "mercredi", label: "Mercredi après-midi — maternelle", build: mercrediMaternelleRows },
+];
+
+const DOMAINES = ["Physique et moteur", "Social", "Affectif", "Cognitif", "Langagier"];
+
+// ---------- Fiches de transition: coloriage + mots cachés ----------
+// Small built-in library of simple line-art shapes (stroke only, no fill)
+// so coloring pages are always valid, clean SVG regardless of what the
+// AI picks — the AI only chooses WHICH of these fit the theme.
+const COLORING_SHAPES = {
+  soleil: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="100" cy="95" r="32" />
+      <path d="M86 90 Q89 85 92 90 M108 90 Q111 85 114 90" />
+      <path d="M84 105 Q100 118 116 105" />
+      <path d="M78 78 Q84 82 80 88 M122 78 Q116 82 120 88" strokeWidth="1.3" />
+      {Array.from({ length: 12 }).map((_, i) => {
+        const a = (i * Math.PI) / 6;
+        const long = i % 2 === 0;
+        const r1 = 40, r2 = long ? 72 : 56;
+        return <line key={i} x1={100 + Math.cos(a) * r1} y1={95 + Math.sin(a) * r1} x2={100 + Math.cos(a) * r2} y2={95 + Math.sin(a) * r2} />;
+      })}
+      <circle cx="35" cy="150" r="14" strokeWidth="1.5" /><circle cx="55" cy="158" r="10" strokeWidth="1.5" />
+      <path d="M12 172 Q35 168 58 172" strokeWidth="1.5" />
+      <circle cx="165" cy="145" r="12" strokeWidth="1.5" /><circle cx="182" cy="155" r="8" strokeWidth="1.5" />
+      <path d="M0 185 h200" strokeWidth="1.3" />
+      <path d="M20 185 q4 -10 8 0 M60 185 q4 -10 8 0 M140 185 q4 -10 8 0 M175 185 q4 -10 8 0" strokeWidth="1.2" />
+    </g>
+  ),
+  nuage: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="60" cy="110" r="22" /><circle cx="88" cy="82" r="28" /><circle cx="122" cy="95" r="24" /><circle cx="150" cy="112" r="19" />
+      <path d="M38 116 Q38 138 60 138 L153 138 Q173 138 171 116" />
+      <path d="M55 100 Q60 96 66 100 M95 72 Q100 68 106 72 M130 88 Q135 84 140 88" strokeWidth="1.3" />
+      <path d="M20 150 l6 12 M40 158 l6 14 M65 150 l6 12 M130 155 l6 13 M150 148 l6 12 M170 158 l6 13" strokeWidth="1.5" />
+      <circle cx="15" cy="60" r="3" /><circle cx="180" cy="55" r="3" /><circle cx="30" cy="40" r="2" /><circle cx="165" cy="35" r="2" />
+      <path d="M170 40 h10 M175 35 v10" strokeWidth="1.2" />
+    </g>
+  ),
+  arbre: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M90 178 L94 128 M110 178 L106 128 M100 178 V122" />
+      <path d="M92 150 h16 M90 165 h20" strokeWidth="1.3" />
+      <path d="M100 178 Q78 184 60 180 M100 178 Q122 184 140 180" />
+      <circle cx="76" cy="82" r="34" /><circle cx="124" cy="76" r="38" /><circle cx="100" cy="50" r="32" />
+      <path d="M64 78 q9 -7 16 0 M110 70 q9 -7 16 0 M88 46 q7 -7 14 0 M60 100 q9 -7 16 0 M130 95 q9 -7 16 0" strokeWidth="1.3" />
+      <circle cx="55" cy="120" r="6" strokeWidth="1.3" /><circle cx="150" cy="115" r="6" strokeWidth="1.3" />
+      <path d="M15 178 q30 -20 45 0 M140 178 q30 -20 45 0" strokeWidth="1.3" />
+      <path d="M0 178 h200" strokeWidth="1.3" />
+      <path d="M20 178 q3 -8 6 0 M35 178 q3 -8 6 0 M160 178 q3 -8 6 0 M175 178 q3 -8 6 0" strokeWidth="1.2" />
+      <path d="M165 55 l4 8 l8 2 l-8 2 l-4 8 l-4 -8 l-8 -2 l8 -2 Z" strokeWidth="1.3" />
+    </g>
+  ),
+  fleur: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M100 118 Q88 150 100 185 Q112 150 100 118" />
+      <path d="M100 138 Q78 143 66 158 M100 155 Q122 160 134 174" strokeWidth="1.6" />
+      <path d="M66 158 Q60 150 64 142 M134 174 Q140 168 138 160" strokeWidth="1.3" />
+      <circle cx="100" cy="85" r="14" />
+      <path d="M92 85 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0 M108 85 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0 M100 93 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0 M100 76 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0" />
+      {Array.from({ length: 8 }).map((_, i) => {
+        const a = (i * Math.PI) / 4;
+        const cx = 100 + Math.cos(a) * 29, cy = 85 + Math.sin(a) * 29;
+        return (
+          <g key={i}>
+            <ellipse cx={cx} cy={cy} rx="17" ry="10" transform={`rotate(${(a * 180) / Math.PI} ${cx} ${cy})`} />
+            <line x1={100 + Math.cos(a) * 16} y1={85 + Math.sin(a) * 16} x2={100 + Math.cos(a) * 42} y2={85 + Math.sin(a) * 42} strokeWidth="1.3" />
+          </g>
+        );
+      })}
+      <circle cx="145" cy="60" r="9" strokeWidth="1.5" />
+      <path d="M137 60 h16 M145 52 v16" strokeWidth="1.2" />
+      <path d="M154 65 q10 4 8 14" strokeWidth="1.3" />
+      <path d="M0 185 h200" strokeWidth="1.3" />
+      <path d="M30 185 q3 -9 7 0 M55 185 q3 -9 7 0 M150 185 q3 -9 7 0" strokeWidth="1.2" />
+    </g>
+  ),
+  etoile: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeLinecap="round">
+      <polygon points="100,18 119,71 176,71 130,105 148,160 100,127 52,160 70,105 24,71 81,71" />
+      <path d="M100 42 L109 67 L100 82 L91 67 Z" strokeWidth="1.5" />
+      <path d="M100 90 L106 105 L100 116 L94 105 Z" strokeWidth="1.3" />
+      <line x1="30" y1="30" x2="42" y2="42" /><line x1="170" y1="30" x2="158" y2="42" />
+      <path d="M25 55 h10 M25 50 v10" strokeWidth="1.3" /><path d="M175 90 h10 M180 85 v10" strokeWidth="1.3" />
+      <circle cx="20" cy="120" r="3" /><circle cx="180" cy="120" r="3" /><circle cx="60" cy="15" r="2" /><circle cx="140" cy="15" r="2" />
+      <path d="M20 120 L52 160 M180 120 L148 160" strokeWidth="1" strokeDasharray="2 4" />
+    </g>
+  ),
+  coeur: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M100 172 C36 122 16 80 44 54 C65 33 96 42 100 72 C104 42 135 33 156 54 C184 80 164 122 100 172 Z" />
+      <path d="M100 158 C58 122 42 92 52 70 C66 82 88 98 100 128 C112 98 134 82 148 70 C158 92 142 122 100 158 Z" strokeWidth="1.4" />
+      {Array.from({ length: 6 }).map((_, i) => (
+        <circle key={i} cx={68 + i * 13} cy={60 + (i % 2) * 10} r="2.3" />
+      ))}
+      <path d="M40 70 q-14 4 -14 18 M160 70 q14 4 14 18" strokeWidth="1.3" />
+      <circle cx="26" cy="95" r="2.5" /><circle cx="174" cy="95" r="2.5" />
+    </g>
+  ),
+  papillon: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M100 52 Q92 40 84 34 M100 52 Q108 40 116 34" />
+      <circle cx="84" cy="33" r="2.5" /><circle cx="116" cy="33" r="2.5" />
+      <path d="M97 55 q3 4 6 0 v92 q-3 4 -6 0 Z" />
+      <path d="M96 62 q-3 22 0 36 M104 62 q3 22 0 36 M96 105 q-3 14 0 24 M104 105 q3 14 0 24" strokeWidth="1.3" />
+      <ellipse cx="66" cy="80" rx="36" ry="27" /><ellipse cx="134" cy="80" rx="36" ry="27" />
+      <ellipse cx="70" cy="126" rx="27" ry="20" /><ellipse cx="130" cy="126" rx="27" ry="20" />
+      <ellipse cx="60" cy="78" rx="18" ry="12" strokeWidth="1.4" /><ellipse cx="140" cy="78" rx="18" ry="12" strokeWidth="1.4" />
+      <circle cx="48" cy="80" r="6" strokeWidth="1.4" /><circle cx="152" cy="80" r="6" strokeWidth="1.4" />
+      <circle cx="66" cy="124" r="5" strokeWidth="1.4" /><circle cx="134" cy="124" r="5" strokeWidth="1.4" />
+      <path d="M30 62 q-8 4 -10 14 M170 62 q8 4 10 14" strokeWidth="1.3" />
+    </g>
+  ),
+  feuille: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M100 22 C158 54 160 132 100 184 C40 132 42 54 100 22 Z" />
+      <line x1="100" y1="36" x2="100" y2="174" />
+      <path d="M100 55 Q125 64 138 80 M100 82 Q126 90 142 108 M100 108 Q124 117 136 132 M100 132 Q120 140 128 152" strokeWidth="1.4" />
+      <path d="M100 55 Q75 64 62 80 M100 82 Q74 90 58 108 M100 108 Q76 117 64 132 M100 132 Q80 140 72 152" strokeWidth="1.4" />
+      <path d="M117 62 l4 6 M120 90 l4 6 M118 116 l4 6" strokeWidth="1" />
+      <path d="M83 62 l-4 6 M80 90 l-4 6 M82 116 l-4 6" strokeWidth="1" />
+      <circle cx="25" cy="40" r="2.5" /><circle cx="175" cy="45" r="2.5" />
+    </g>
+  ),
+  maison: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="48" y="98" width="104" height="80" />
+      <polygon points="36,98 100,44 164,98" />
+      <path d="M46 98 L100 52 L154 98 M40 98 L100 46 L160 98" strokeWidth="1.3" />
+      <rect x="86" y="130" width="28" height="48" /><circle cx="105" cy="155" r="2" />
+      <path d="M86 154 h28" strokeWidth="1.3" />
+      <rect x="58" y="110" width="24" height="24" /><line x1="70" y1="110" x2="70" y2="134" /><line x1="58" y1="122" x2="82" y2="122" />
+      <rect x="118" y="110" width="24" height="24" /><line x1="130" y1="110" x2="130" y2="134" /><line x1="118" y1="122" x2="142" y2="122" />
+      <path d="M55 108 h30 M115 108 h30" strokeWidth="1.2" />
+      <rect x="130" y="55" width="13" height="26" />
+      <path d="M136 55 q7 -10 -2 -20 q-8 9 1 18 q-8 6 1 12" strokeWidth="1.4" />
+      <circle cx="30" cy="42" r="13" strokeWidth="1.6" />
+      <path d="M20 178 q30 -16 55 0 q30 -16 55 0" strokeWidth="1.3" />
+      <path d="M15 178 h20 M155 178 h20" strokeWidth="1.6" />
+      <path d="M0 178 h200" strokeWidth="1.4" />
+    </g>
+  ),
+  lune: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinejoin="round" strokeLinecap="round">
+      <path d="M115 32 A70 70 0 1 0 115 168 A54 54 0 1 1 115 32 Z" />
+      <path d="M55 55 Q60 62 55 68 M40 92 Q45 99 40 105 M50 128 Q55 135 50 141" strokeWidth="1.4" />
+      <polygon points="150,45 154,56 166,56 156,63 160,74 150,67 140,74 144,63 134,56 146,56" />
+      <polygon points="172,95 175,102 183,102 176,107 179,114 172,110 165,114 168,107 161,102 169,102" strokeWidth="1.4" />
+      <circle cx="165" cy="140" r="3" /><circle cx="130" cy="155" r="2.5" /><circle cx="30" cy="130" r="2.5" /><circle cx="25" cy="30" r="2" /><circle cx="185" cy="60" r="2" />
+      <circle cx="160" cy="170" r="16" strokeWidth="1.4" /><circle cx="178" cy="176" r="10" strokeWidth="1.4" />
+      <path d="M140 178 Q160 186 190 178" strokeWidth="1.4" />
+    </g>
+  ),
+  ballon: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="68" cy="68" r="32" /><circle cx="128" cy="60" r="25" /><circle cx="102" cy="102" r="28" />
+      <polygon points="62,98 76,98 68,110" /><polygon points="121,83 137,83 129,95" /><polygon points="95,128 111,128 102,140" />
+      <path d="M68 110 Q55 132 64 152 M129 95 Q140 116 122 135 Q130 142 116 155 M102 140 Q110 158 96 175" strokeWidth="1.5" />
+      <path d="M58 58 q6 -8 14 -4 M117 52 q5 -6 12 -3 M92 94 q6 -8 14 -4" strokeWidth="1.3" />
+      <path d="M50 78 q-4 8 4 14 M148 66 q6 6 2 14 M76 118 q-4 8 4 12" strokeWidth="1.2" />
+      <path d="M0 178 h200" strokeWidth="1.3" />
+      <path d="M20 178 v-10 M35 178 v-14 M160 178 v-10 M175 178 v-14" strokeWidth="1.2" />
+    </g>
+  ),
+  poisson: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="92" cy="98" rx="56" ry="32" />
+      <polygon points="146,98 182,70 182,126" />
+      <path d="M97 68 Q105 80 97 92 M112 70 Q120 82 112 96 M97 102 Q105 114 97 127 M82 106 Q90 118 82 130" strokeWidth="1.5" />
+      <path d="M68 76 Q78 88 68 98 Q78 108 68 120" strokeWidth="1.4" />
+      <circle cx="58" cy="90" r="4" fill="#11223A" />
+      <path d="M92 70 Q88 62 92 55 M92 126 Q88 134 92 141" strokeWidth="1.4" />
+      <path d="M15 55 q6 8 0 16 M8 95 q6 8 0 16 M18 130 q6 8 0 16" strokeWidth="1.3" />
+      <path d="M160 150 Q168 130 160 112 M175 155 Q183 135 175 115" strokeWidth="1.3" />
+      <ellipse cx="20" cy="160" rx="12" ry="6" strokeWidth="1.3" /><ellipse cx="45" cy="168" rx="16" ry="7" strokeWidth="1.3" />
+    </g>
+  ),
+  arcenciel: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round">
+      <path d="M15 165 A85 85 0 0 1 185 165" />
+      <path d="M33 165 A67 67 0 0 1 167 165" />
+      <path d="M51 165 A49 49 0 0 1 149 165" />
+      <path d="M69 165 A31 31 0 0 1 131 165" />
+      <path d="M87 165 A13 13 0 0 1 113 165" strokeWidth="1.4" />
+      <circle cx="30" cy="172" r="12" /><circle cx="48" cy="180" r="8" /><circle cx="15" cy="182" r="6" strokeWidth="1.4" />
+      <circle cx="170" cy="172" r="12" /><circle cx="152" cy="180" r="8" /><circle cx="185" cy="182" r="6" strokeWidth="1.4" />
+      <circle cx="20" cy="30" r="3" /><circle cx="180" cy="25" r="3" /><circle cx="100" cy="15" r="2.5" />
+      <path d="M10 45 h8 M182 40 h8" strokeWidth="1.3" />
+    </g>
+  ),
+  fusee: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M100 20 C132 52 132 112 118 148 L82 148 C68 112 68 52 100 20 Z" />
+      <circle cx="100" cy="78" r="17" /><circle cx="100" cy="78" r="9" strokeWidth="1.4" />
+      <path d="M84 100 h32 M84 112 h32" strokeWidth="1.3" />
+      <path d="M82 128 L52 155 L58 164 M118 128 L148 155 L142 164" />
+      <path d="M86 148 L78 182 L100 170 L122 182 L114 148" />
+      <path d="M92 182 q8 8 16 0" strokeWidth="1.4" />
+      <path d="M38 60 h12 M155 42 h12 M172 88 h10 M25 105 h8" strokeWidth="1.4" />
+      <circle cx="28" cy="95" r="3" /><circle cx="168" cy="118" r="3" />
+      <circle cx="45" cy="140" r="9" strokeWidth="1.4" /><path d="M38 140 h14 M45 133 v14" strokeWidth="1" />
+      <path d="M150 60 l4 8 l8 2 l-8 2 l-4 8 l-4 -8 l-8 -2 l8 -2 Z" strokeWidth="1.4" />
+    </g>
+  ),
+  chateau: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="52" y="88" width="96" height="90" />
+      <path d="M52 108 h96 M52 128 h96 M52 148 h96" strokeWidth="1.2" strokeDasharray="10 4" />
+      <rect x="36" y="58" width="30" height="120" /><polygon points="36,58 51,36 66,58" />
+      <rect x="134" y="58" width="30" height="120" /><polygon points="134,58 149,36 164,58" />
+      <path d="M52 88 h96 M58 88 v-14 h8 v14 M78 88 v-14 h8 v14 M98 88 v-14 h8 v14 M118 88 v-14 h8 v14 M138 88 v-14 h8 v14" />
+      <path d="M90 178 v-40 a10 10 0 0 1 20 0 v40" />
+      <rect x="86" y="112" width="28" height="22" strokeWidth="1.5" /><line x1="100" y1="112" x2="100" y2="134" strokeWidth="1.2" />
+      <rect x="42" y="100" width="14" height="18" strokeWidth="1.4" /><rect x="144" y="100" width="14" height="18" strokeWidth="1.4" />
+      <line x1="51" y1="40" x2="51" y2="22" /><path d="M51 22 l16 6 l-16 6 Z" />
+      <line x1="149" y1="40" x2="149" y2="22" /><path d="M149 22 l16 6 l-16 6 Z" />
+      <path d="M20 178 q80 -14 160 0" strokeWidth="1.3" />
+    </g>
+  ),
+  cactus: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M90 178 V90 a10 10 0 0 1 20 0 v88" />
+      <path d="M90 128 Q58 128 58 102 Q58 84 77 84" />
+      <path d="M110 112 Q142 112 142 88 Q142 70 125 70" />
+      <path d="M95 55 q3 -14 8 0 M103 55 q3 -14 8 0" strokeWidth="1.4" />
+      <path d="M83 100 v55 M100 96 v70 M117 106 v60" strokeWidth="1.2" />
+      <path d="M60 105 v18 M70 90 v18 M120 88 v18 M132 74 v18" strokeWidth="1" />
+      <ellipse cx="58" cy="178" rx="14" ry="7" strokeWidth="1.5" /><ellipse cx="145" cy="178" rx="10" ry="5" strokeWidth="1.5" /><ellipse cx="30" cy="178" rx="10" ry="5" strokeWidth="1.5" />
+      <path d="M0 178 h200" strokeWidth="1.3" />
+      <circle cx="170" cy="40" r="18" strokeWidth="1.4" />
+      {Array.from({ length: 8 }).map((_, i) => {
+        const a = (i * Math.PI) / 4;
+        return <line key={i} x1={170 + Math.cos(a) * 22} y1={40 + Math.sin(a) * 22} x2={170 + Math.cos(a) * 30} y2={40 + Math.sin(a) * 30} strokeWidth="1.2" />;
+      })}
+    </g>
+  ),
+  oiseau: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="100" cy="103" rx="40" ry="30" />
+      <path d="M75 90 Q80 85 88 88 M78 100 Q84 96 92 99 M80 112 Q86 109 94 112" strokeWidth="1.3" />
+      <circle cx="148" cy="78" r="21" />
+      <polygon points="167,76 186,81 167,89" />
+      <circle cx="155" cy="72" r="2.5" fill="#11223A" />
+      <path d="M148 60 q4 -8 10 -6" strokeWidth="1.4" />
+      <path d="M62 95 Q35 88 20 102 Q40 108 60 108 M62 105 Q30 108 18 125 Q42 120 65 115" />
+      <path d="M85 132 Q78 150 64 156 M100 135 Q100 152 100 160 M118 132 Q126 150 138 156" strokeWidth="1.4" />
+      <path d="M10 172 Q60 148 120 172 Q160 152 195 170" strokeWidth="1.4" />
+      <path d="M40 172 v-20 M40 152 q-14 -4 -18 -18 M40 152 q14 -4 18 -18" strokeWidth="1.3" />
+    </g>
+  ),
+  escargot: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M118 152 A42 42 0 1 1 160 110 A27 27 0 1 1 133 137 A14 14 0 1 1 119 123 A7 7 0 1 1 126 116" />
+      <path d="M118 152 Q58 152 42 130 Q26 110 42 96 Q58 87 74 101 Q88 115 74 128 Q63 137 52 128" strokeWidth="1.4" />
+      <path d="M42 96 Q30 68 18 50 M56 94 Q52 66 60 47" />
+      <circle cx="18" cy="48" r="4.5" /><circle cx="60" cy="45" r="4.5" />
+      <path d="M0 172 h200" strokeWidth="1.3" />
+      <path d="M30 172 q80 -12 150 0" strokeWidth="1.2" />
+      <path d="M150 172 Q160 155 155 140 M170 172 Q182 158 178 142" strokeWidth="1.3" />
+    </g>
+  ),
+  champignon: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M35 92 Q35 40 100 40 Q165 40 165 92 Q100 110 35 92 Z" />
+      <path d="M35 92 Q100 106 165 92" strokeWidth="1.3" />
+      <circle cx="62" cy="65" r="7" /><circle cx="100" cy="55" r="6" /><circle cx="136" cy="70" r="7" /><circle cx="100" cy="82" r="5" /><circle cx="75" cy="85" r="4" /><circle cx="122" cy="88" r="4" />
+      <path d="M75 100 L75 178 Q100 186 125 178 L125 100" />
+      <path d="M82 118 Q100 126 118 118 M82 140 Q100 148 118 140 M82 160 Q100 168 118 160" strokeWidth="1.3" />
+      <circle cx="152" cy="130" r="16" strokeWidth="1.4" /><circle cx="146" cy="122" r="3" /><circle cx="158" cy="135" r="2.5" />
+      <path d="M152 146 v20" strokeWidth="1.4" />
+      <path d="M0 178 h200" strokeWidth="1.3" />
+      <path d="M15 178 q3 -8 6 0 M25 178 q3 -8 6 0" strokeWidth="1.1" />
+    </g>
+  ),
+  coquillage: (
+    <g stroke="#11223A" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M100 178 Q36 172 36 108 Q36 50 100 24 Q164 50 164 108 Q164 172 100 178 Z" />
+      <path d="M100 178 V24 M74 174 Q62 96 78 28 M48 158 Q45 92 62 40 M126 174 Q138 96 122 28 M152 158 Q155 92 138 40" strokeWidth="1.5" />
+      <path d="M22 178 Q100 200 178 178" strokeWidth="1.4" />
+      <path d="M15 165 q80 20 170 0" strokeWidth="1.2" strokeDasharray="6 5" />
+      <polygon points="30,150 34,160 44,160 36,166 39,176 30,170 21,176 24,166 16,160 26,160" strokeWidth="1.4" />
+      <circle cx="170" cy="140" r="3" /><circle cx="178" cy="155" r="2.5" />
+    </g>
+  ),
+};
+const COLORING_SHAPE_NAMES = Object.keys(COLORING_SHAPES);
+
+// Matches AI-returned shape names against our library tolerantly (case,
+// accents, surrounding text), so a near-miss like "Fleur" or "papillons"
+// still resolves. Falls back to a default assortment if nothing matches
+// at all, so the coloring page is never silently empty.
+function normalizeFormes(rawFormes) {
+  const norm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const known = COLORING_SHAPE_NAMES.map((n) => ({ name: n, norm: norm(n) }));
+  const matched = [];
+  (Array.isArray(rawFormes) ? rawFormes : []).forEach((f) => {
+    const nf = norm(f);
+    const hit = known.find((k) => nf === k.norm || nf.includes(k.norm) || k.norm.includes(nf));
+    if (hit && !matched.includes(hit.name)) matched.push(hit.name);
+  });
+  if (matched.length > 0) return matched.slice(0, 4);
+  // Fallback: a pleasant default assortment so something always prints.
+  return ["soleil", "fleur", "papillon", "nuage"];
+}
+
+function ColoringPrintPage({ formes, theme, customImages }) {
+  const shapes = (formes || []).filter((f) => COLORING_SHAPES[f]).slice(0, 4);
+  const images = customImages || [];
+  if (images.length === 0 && shapes.length === 0) return null;
+
+  if (images.length > 0) {
+    return (
+      <>
+        {images.map((img, i) => (
+          <div key={i} className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Fiche de transition {images.length > 1 ? `(${i + 1}/${images.length})` : ""}</p>
+            <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
+            <div className="leaf-underline w-16 mt-3 mb-6" />
+            <div className="flex items-center justify-center">
+              <img src={img} alt="Coloriage" className="max-w-full max-h-[600px] rounded-xl border border-[#E3DACB]" />
+            </div>
+          </div>
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
+      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Fiche de transition</p>
+      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Coloriage — {theme || "à colorier"}</h2>
+      <div className="leaf-underline w-16 mt-3 mb-6" />
+      <div className="grid grid-cols-2 gap-6">
+        {shapes.map((name) => (
+          <div key={name} className="border border-[#E3DACB] rounded-xl p-4 flex items-center justify-center">
+            <svg viewBox="0 0 200 200" className="w-full h-auto max-w-[220px]">{COLORING_SHAPES[name]}</svg>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WordSearchPrintPage({ wordSearch, theme }) {
+  if (!wordSearch || !wordSearch.grid) return null;
+  return (
+    <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
+      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Fiche de transition</p>
+      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Mots cachés — {theme || ""}</h2>
+      <div className="leaf-underline w-16 mt-3 mb-6" />
+      <table className="border-collapse mx-auto mb-6">
+        <tbody>
+          {wordSearch.grid.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((letter, ci) => (
+                <td key={ci} className="border border-[#DCD3C2] text-center font-mono font-semibold" style={{ width: 26, height: 26, fontSize: 14 }}>{letter}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Mots à trouver</h3>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        {wordSearch.placed.map((w, i) => <span key={i}>{w}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function buildTransitionPrompt({ theme }) {
+  return `Tu prépares des fiches d'activités de transition (à imprimer) pour des enfants en service de garde, sur le thème "${theme}".
+
+1. Choisis 4 formes DANS CETTE LISTE EXACTE (aucune autre valeur permise) qui conviennent le mieux au thème, pour une page à colorier simple intégrée à l'app : ${COLORING_SHAPE_NAMES.join(", ")}.
+2. Propose 8 mots courts (4 à 9 lettres, en MAJUSCULES, sans accents ni espaces) liés au thème, pour un jeu de mots cachés adapté à des enfants du primaire.
+3. Écris 3 courtes descriptions (en français, une phrase chacune) de scènes à colorier liées au thème, à utiliser comme prompts dans un générateur d'images IA externe (ex. "un renard curieux explorant une forêt d'automne avec des feuilles qui tombent"). Varie les sujets.
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format exact :
+{
+  "formes": ["soleil", "fleur", "papillon", "nuage"],
+  "mots": ["SOLEIL", "FLEUR", "PAPILLON", "NUAGE", "ETE", "JARDIN", "ABEILLE", "VERT"],
+  "imagePrompts": ["Description de scène 1", "Description de scène 2", "Description de scène 3"]
+}`;
+}
+
+// Classic word-search grid generator: places each word in a random
+// direction/position (allowing overlaps on matching letters), then fills
+// remaining cells with random letters.
+function buildWordSearch(words, size = 12) {
+  const grid = Array.from({ length: size }, () => Array(size).fill(null));
+  const dirs = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [0, -1], [-1, -1], [-1, 1]];
+  const placed = [];
+  let cleanWords = (Array.isArray(words) ? words : []).map((w) => String(w).toUpperCase().replace(/[^A-ZÀ-Ÿ]/g, "")).filter((w) => w.length >= 3 && w.length <= size);
+  if (cleanWords.length === 0) {
+    cleanWords = ["SOLEIL", "NATURE", "AMI", "JOUR", "ETE", "JEU"];
+  }
+
+  cleanWords.forEach((word) => {
+    let ok = false;
+    for (let attempt = 0; attempt < 60 && !ok; attempt++) {
+      const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+      const maxRow = dy >= 0 ? size - (word.length - 1) * Math.abs(dy) : size;
+      const startRowMin = dy < 0 ? (word.length - 1) * Math.abs(dy) : 0;
+      const maxCol = dx >= 0 ? size - (word.length - 1) * Math.abs(dx) : size;
+      const startColMin = dx < 0 ? (word.length - 1) * Math.abs(dx) : 0;
+      if (maxRow <= startRowMin || maxCol <= startColMin) continue;
+      const row = startRowMin + Math.floor(Math.random() * (maxRow - startRowMin));
+      const col = startColMin + Math.floor(Math.random() * (maxCol - startColMin));
+      let fits = true;
+      for (let i = 0; i < word.length; i++) {
+        const r = row + dy * i, c = col + dx * i;
+        if (r < 0 || r >= size || c < 0 || c >= size) { fits = false; break; }
+        const existing = grid[r][c];
+        if (existing !== null && existing !== word[i]) { fits = false; break; }
+      }
+      if (!fits) continue;
+      for (let i = 0; i < word.length; i++) {
+        const r = row + dy * i, c = col + dx * i;
+        grid[r][c] = word[i];
+      }
+      placed.push(word);
+      ok = true;
+    }
+  });
+
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!grid[r][c]) grid[r][c] = alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+  }
+  return { grid, placed };
+}
+
+const DEFAULT_SCHEDULE_ROWS = fullDayRows();
+
+const MOIS_NOMS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+function getWednesdaysInMonth(year, monthIndex) {
+  const dates = [];
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, monthIndex, day);
+    if (d.getDay() === 3) dates.push(d);
+  }
+  return dates;
+}
+
+function formatDateFr(date) {
+  return `${date.getDate()} ${MOIS_NOMS[date.getMonth()].toLowerCase()}`;
+}
+
+// ---------- Claude call ----------
 // Appelle notre propre route backend sécurisée (/api/generate) au lieu
 // d'appeler Anthropic directement — la vraie clé API ne quitte jamais le
 // serveur. C'est le changement essentiel par rapport à l'artefact Claude.
@@ -68,7 +608,7 @@ async function askClaude(promptText, maxTokens = 3000) {
 
 // Same robust fetch/read path as askClaudeOnce, but returns raw trimmed
 // text instead of parsing JSON — used for short free-text generations
-// like an "amorce" (activity intro/hook), où le JSON serait superflu.
+// like an "amorce" (activity intro/hook), where JSON would be overkill.
 async function askClaudeTextOnce(promptText, maxTokens) {
   let response;
   try {

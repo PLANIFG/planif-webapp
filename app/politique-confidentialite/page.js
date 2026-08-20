@@ -14,7 +14,7 @@ export default function PolitiqueConfidentialite() {
             PLANIF est un outil de planification d'activités éducatives, exploité actuellement
             par une personne physique (entreprise individuelle non enregistrée). Pour toute
             question concernant vos renseignements personnels, écrivez à{" "}
-            <strong>[à compléter — votre courriel de contact]</strong>.
+            <a href="mailto:Planif.net@gmail.com" style={{ color: "inherit" }}>Planif.net@gmail.com</a>.
           </p>
         </Section>
 
@@ -51,7 +51,7 @@ export default function PolitiqueConfidentialite() {
           <p>
             Vos renseignements sont conservés tant que votre compte est actif. Vous pouvez
             demander la suppression complète de votre compte et de vos données en tout temps
-            en nous écrivant à <strong>[à compléter]</strong>.
+            en nous écrivant à <a href="mailto:Planif.net@gmail.com" style={{ color: "inherit" }}>Planif.net@gmail.com</a>.
           </p>
         </Section>
 

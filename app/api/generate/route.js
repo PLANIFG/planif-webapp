@@ -24,7 +24,6 @@ export async function POST(request) {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
-
   if (authError || !user) {
     return Response.json(
       { error: "Vous devez être connectée pour générer du contenu." },
@@ -37,13 +36,20 @@ export async function POST(request) {
   // si un seul crédit reste au compteur.
   const db = supabaseAdmin();
   const quota = await tryConsumeGeneration(db, user.id);
-
   if (!quota.allowed) {
-    const message = quota.error
-      ? "Impossible de vérifier ton quota pour le moment. Réessaie dans un instant."
-      : `Tu as atteint ta limite de ${quota.generationLimit} générations pour ce cycle. ` +
-        `Ton quota sera renouvelé le ${new Date(quota.periodEnd).toLocaleDateString("fr-CA")}.`;
-
+    let message;
+    if (quota.error) {
+      message = "Impossible de vérifier ton quota pour le moment. Réessaie dans un instant.";
+    } else {
+      // On valide que la date est réelle (ni vide, ni 1970-01-01, l'artefact
+      // classique d'une date "zéro" en JavaScript) avant de l'afficher.
+      const parsedDate = quota.periodEnd ? new Date(quota.periodEnd) : null;
+      const hasValidDate = parsedDate && !isNaN(parsedDate.getTime()) && parsedDate.getTime() > 0;
+      const renouvellement = hasValidDate
+        ? `Ton quota sera renouvelé le ${parsedDate.toLocaleDateString("fr-CA")}.`
+        : "Ton quota sera renouvelé au prochain cycle de facturation.";
+      message = `Tu as atteint ta limite de ${quota.generationLimit} générations pour ce cycle. ${renouvellement}`;
+    }
     return Response.json(
       {
         error: message,

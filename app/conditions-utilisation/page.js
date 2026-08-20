@@ -94,7 +94,7 @@ export default function ConditionsUtilisation() {
         <Section title="11. Contact">
           <p>
             Pour toute question concernant ces conditions, écrivez à{" "}
-            <strong>[à compléter — votre courriel de contact]</strong>.
+            <a href="mailto:Planif.net@gmail.com" style={{ color: "inherit" }}>Planif.net@gmail.com</a>.
           </p>
         </Section>
 

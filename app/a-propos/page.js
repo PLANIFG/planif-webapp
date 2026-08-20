@@ -33,7 +33,7 @@ export default function APropos() {
 
         <p style={{ color: "#7A7362", fontSize: 14, lineHeight: 1.8, marginTop: 32 }}>
           Des questions, des suggestions ou des commentaires ? Écrivez-moi à{" "}
-          <strong>[à compléter — votre courriel de contact]</strong>.
+          <a href="mailto:Planif.net@gmail.com" style={{ color: "inherit" }}>Planif.net@gmail.com</a>.
         </p>
       </div>
     </div>

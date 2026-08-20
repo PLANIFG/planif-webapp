@@ -57,6 +57,9 @@ export async function POST(request) {
       mode: "subscription",
       customer_email: email,
       client_reference_id: userId,
+      // Permet à l'utilisatrice d'entrer un code promo (ex. RENTREE50)
+      // directement sur la page de paiement Stripe.
+      allow_promotion_codes: true,
       // Exige une carte bancaire dès l'inscription à l'essai gratuit,
       // pour décourager la création de comptes multiples juste pour
       // profiter de l'essai à répétition.

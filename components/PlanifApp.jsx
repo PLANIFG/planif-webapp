@@ -2145,7 +2145,7 @@ function WeeklyGridTool() {
         const labelStyle = "font-weight:700;font-size:11px;color:#3C6E52;";
         return `<td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;">
           <div style="${labelStyle}">Activité :</div><div style="margin-bottom:4px;">${escapeHtml(cell.activite) || "—"}</div>
-          <div style="font-size:11px;color:#7A7362;margin-bottom:4px;">${escapeHtml([cell.local || jourObj.lieu, cell.duree].filter(Boolean).join(" · "))}</div>
+          <div style="font-size:11px;color:#7A7362;margin-bottom:4px;">${escapeHtml(cell.duree)}</div>
           ${cell.resume ? `<div style="${labelStyle}">Description :</div><div style="margin-bottom:4px;">${escapeHtml(cell.resume)}</div>` : ""}
           ${cell.materiel?.filter((m) => m.trim()).length ? `<div style="${labelStyle}">Matériel :</div><div style="margin-bottom:4px;">${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}
           ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div>${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
@@ -2529,16 +2529,25 @@ ${fichesHtml.join("")}
                         const cell = getCell(jourObj.name, periode);
                         return (
                           <td key={periode} className="p-3 align-top text-[#2B2A26]">
-                            <div className="font-semibold">{cell.activite || "—"}</div>
-                            {(cell.local || cell.duree) && (
-                              <div className="text-xs text-[#7A7362]">{[cell.local, cell.duree].filter(Boolean).join(" · ")}</div>
+                            <div className="text-xs font-bold" style={{ color: COLORS.moss }}>Activité :</div>
+                            <div className="font-semibold mb-1">{cell.activite || "—"}</div>
+                            {cell.duree && (
+                              <div className="text-xs text-[#7A7362] mb-1">{cell.duree}</div>
                             )}
-                            {cell.resume && <div className="text-xs text-[#2B2A26] mt-1">{cell.resume}</div>}
+                            {cell.resume && (
+                              <>
+                                <div className="text-xs font-bold" style={{ color: COLORS.moss }}>Description :</div>
+                                <div className="text-xs text-[#2B2A26] mb-1">{cell.resume}</div>
+                              </>
+                            )}
                             {cell.materiel?.filter((m) => m.trim()).length > 0 && (
                               <div className="text-xs text-[#7A7362] mt-1">Matériel : {cell.materiel.filter((m) => m.trim()).join(", ")}</div>
                             )}
                             {cell.domaines.length > 0 && (
-                              <div className="text-xs mt-1" style={{ color: COLORS.moss }}>{cell.domaines.join(" · ")}</div>
+                              <>
+                                <div className="text-xs font-bold mt-1" style={{ color: COLORS.moss }}>Aspects du développement :</div>
+                                <div className="text-xs" style={{ color: COLORS.moss }}>{cell.domaines.join(" · ")}</div>
+                              </>
                             )}
                           </td>
                         );

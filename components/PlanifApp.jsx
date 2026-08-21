@@ -2143,12 +2143,12 @@ function WeeklyGridTool() {
       const c = visiblePeriodes.map((periode) => {
         const cell = getCell(jourObj.name, periode);
         const labelStyle = "font-weight:700;font-size:11px;color:#3C6E52;";
+        const valueStyle = "font-size:11px;color:#2B2A26;margin-bottom:4px;";
         return `<td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;">
-          <div style="${labelStyle}">Activité :</div><div style="margin-bottom:4px;">${escapeHtml(cell.activite) || "—"}</div>
-          <div style="font-size:11px;color:#7A7362;margin-bottom:4px;">${escapeHtml(cell.duree)}</div>
-          ${cell.resume ? `<div style="${labelStyle}">Description :</div><div style="margin-bottom:4px;">${escapeHtml(cell.resume)}</div>` : ""}
-          ${cell.materiel?.filter((m) => m.trim()).length ? `<div style="${labelStyle}">Matériel :</div><div style="margin-bottom:4px;">${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}
-          ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div>${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
+          <div style="${labelStyle}">Activité :</div><div style="${valueStyle}">${escapeHtml(cell.activite) || "—"}</div>
+          ${cell.resume ? `<div style="${labelStyle}">Description :</div><div style="${valueStyle}">${escapeHtml(cell.resume)}</div>` : ""}
+          ${cell.materiel?.filter((m) => m.trim()).length ? `<div style="${labelStyle}">Matériel :</div><div style="${valueStyle}">${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}
+          ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div style="font-size:11px;color:#3C6E52;">${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
         </td>`;
       }).join("");
       return `<tr><td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;font-weight:700;white-space:nowrap;">${escapeHtml(jourObj.name)}<div style="font-weight:400;font-size:11px;color:#7A7362;margin-top:2px;">Lieu : ${escapeHtml(jourObj.lieu) || "—"}</div></td>${c}</tr>`;
@@ -2530,18 +2530,15 @@ ${fichesHtml.join("")}
                         return (
                           <td key={periode} className="p-3 align-top text-[#2B2A26]">
                             <div className="text-xs font-bold" style={{ color: COLORS.moss }}>Activité :</div>
-                            <div className="font-semibold mb-1">{cell.activite || "—"}</div>
-                            {cell.duree && (
-                              <div className="text-xs text-[#7A7362] mb-1">{cell.duree}</div>
-                            )}
+                            <div className="text-xs mb-1">{cell.activite || "—"}</div>
                             {cell.resume && (
                               <>
                                 <div className="text-xs font-bold" style={{ color: COLORS.moss }}>Description :</div>
-                                <div className="text-xs text-[#2B2A26] mb-1">{cell.resume}</div>
+                                <div className="text-xs mb-1">{cell.resume}</div>
                               </>
                             )}
                             {cell.materiel?.filter((m) => m.trim()).length > 0 && (
-                              <div className="text-xs text-[#7A7362] mt-1">Matériel : {cell.materiel.filter((m) => m.trim()).join(", ")}</div>
+                              <div className="text-xs mt-1"><span className="font-bold" style={{ color: COLORS.moss }}>Matériel :</span> {cell.materiel.filter((m) => m.trim()).join(", ")}</div>
                             )}
                             {cell.domaines.length > 0 && (
                               <>

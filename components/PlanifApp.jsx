@@ -2142,9 +2142,16 @@ function WeeklyGridTool() {
     const rows = jours.map((jourObj) => {
       const c = visiblePeriodes.map((periode) => {
         const cell = getCell(jourObj.name, periode);
-        return `<td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;"><div style="font-weight:700;">${escapeHtml(cell.activite) || "—"}</div><div style="font-size:12px;color:#7A7362;">${escapeHtml([cell.local || jourObj.lieu, cell.duree].filter(Boolean).join(" · "))}</div>${cell.resume ? `<div style="font-size:12px;color:#2B2A26;margin-top:2px;">${escapeHtml(cell.resume)}</div>` : ""}${cell.materiel?.filter((m) => m.trim()).length ? `<div style="font-size:12px;color:#7A7362;margin-top:2px;">Matériel : ${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}${cell.domaines.length ? `<div style="font-size:12px;color:#3C6E52;margin-top:2px;">${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}</td>`;
+        const labelStyle = "font-weight:700;font-size:11px;color:#3C6E52;";
+        return `<td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;">
+          <div style="${labelStyle}">Activité :</div><div style="margin-bottom:4px;">${escapeHtml(cell.activite) || "—"}</div>
+          <div style="font-size:11px;color:#7A7362;margin-bottom:4px;">${escapeHtml([cell.local || jourObj.lieu, cell.duree].filter(Boolean).join(" · "))}</div>
+          ${cell.resume ? `<div style="${labelStyle}">Description :</div><div style="margin-bottom:4px;">${escapeHtml(cell.resume)}</div>` : ""}
+          ${cell.materiel?.filter((m) => m.trim()).length ? `<div style="${labelStyle}">Matériel :</div><div style="margin-bottom:4px;">${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}
+          ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div>${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
+        </td>`;
       }).join("");
-      return `<tr><td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;font-weight:700;white-space:nowrap;">${escapeHtml(jourObj.name)}${jourObj.lieu ? `<div style="font-weight:400;font-size:12px;color:#7A7362;">${escapeHtml(jourObj.lieu)}</div>` : ""}</td>${c}</tr>`;
+      return `<tr><td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;font-weight:700;white-space:nowrap;">${escapeHtml(jourObj.name)}<div style="font-weight:400;font-size:11px;color:#7A7362;margin-top:2px;">Lieu : ${escapeHtml(jourObj.lieu) || "—"}</div></td>${c}</tr>`;
     }).join("");
     const headerCells = visiblePeriodes.map((p) => `<th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">${escapeHtml(p)}</th>`).join("");
 
@@ -2166,12 +2173,18 @@ function WeeklyGridTool() {
     }));
 
     const logoUrl = `${window.location.origin}/logo-planif-vert.png`;
-    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Grille de planification — SDG</title>
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Planification hebdomadaire</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />
 <p style="color:#10192B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
-<h1 style="color:#2A4E3B;margin:4px 0 12px;">Grille de planification — SDG</h1>
-<p style="color:#7A7362;">Groupe : <strong>${escapeHtml(groupeNom) || "—"}</strong> &nbsp;|&nbsp; Éducateur·trice : <strong>${escapeHtml(educatrice) || "—"}</strong> &nbsp;|&nbsp; Semaine : <strong>${escapeHtml(semaine) || "—"}</strong> &nbsp;|&nbsp; Thème : <strong>${escapeHtml(theme) || "—"}</strong></p>
+<h1 style="color:#2A4E3B;margin:4px 0 14px;">Planification hebdomadaire</h1>
+<table style="margin-bottom:6px;"><tr>
+  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Groupe : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(groupeNom) || "—"}</span></td>
+  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Éducateur·trice : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(educatrice) || "—"}</span></td>
+</tr><tr>
+  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Semaine : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(semaine) || "—"}</span></td>
+  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Thème : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(theme) || "—"}</span></td>
+</tr></table>
 <table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Jour</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table>
 ${fichesHtml.join("")}
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
@@ -2234,7 +2247,7 @@ ${fichesHtml.join("")}
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide">Thème du mois</label>
+                <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide">Thème</label>
                 <div className="mt-1 max-w-sm"><TextField value={theme} onChange={setTheme} placeholder="Ex. Alimentation" /></div>
               </div>
             </div>
@@ -2488,7 +2501,7 @@ ${fichesHtml.join("")}
           {visiblePeriodes.length > 0 && (
             <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-6 sm:p-8 mb-6" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
               <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Résumé de la semaine</p>
-              <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Grille de planification — SDG</h1>
+              <h1 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>Planification hebdomadaire</h1>
               <div className="leaf-underline w-16 mt-2 mb-4" />
               <div className="flex flex-wrap gap-x-6 gap-y-1 mb-5 text-sm">
                 <div><span className="text-[#7A7362]">Groupe :</span> <strong>{groupeNom || "—"}</strong></div>

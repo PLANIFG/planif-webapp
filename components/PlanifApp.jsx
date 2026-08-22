@@ -2092,7 +2092,7 @@ function WeeklyGridTool() {
   const renameJour = (idx, val) => setJours((j) => j.map((x, i) => (i === idx ? { ...x, name: val } : x)));
   const renameJourLieu = (idx, val) => setJours((j) => j.map((x, i) => (i === idx ? { ...x, lieu: val } : x)));
 
-  const addPeriode = () => { setPeriodes((p) => [...p, "Nouvelle période"]); setSelectedPeriodes((p) => [...p, "Nouvelle période"]); };
+  const addPeriode = () => { setPeriodes((p) => [...p, ""]); setSelectedPeriodes((p) => [...p, ""]); };
   const removePeriode = (idx) => {
     const removed = periodes[idx];
     setPeriodes((p) => p.filter((_, i) => i !== idx));
@@ -2333,7 +2333,7 @@ ${fichesHtml.join("")}
                 <div key={idx} className="flex items-center gap-1 bg-white border border-[#DCD3C2] rounded-lg pl-1 pr-1 py-1">
                   <label className="flex items-center gap-1.5 pl-1.5 cursor-pointer">
                     <input type="checkbox" checked={selectedPeriodes.includes(p)} onChange={() => togglePeriodeSelected(p)} className="w-4 h-4 accent-[#7C9483]" />
-                    <input value={p} onChange={(e) => renamePeriode(idx, e.target.value)} className="text-sm w-28 focus:outline-none" />
+                    <input value={p} onChange={(e) => renamePeriode(idx, e.target.value)} placeholder="Ex. Midi" className="text-sm w-28 focus:outline-none" />
                   </label>
                   <IconBtn danger title="Retirer" onClick={() => removePeriode(idx)}><Trash2 size={13} /></IconBtn>
                 </div>

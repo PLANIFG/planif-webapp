@@ -732,7 +732,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, sans b
     "age": "Groupe d'âge le plus adapté",
     "duree": "Durée estimée (ex. 45-60 minutes)",
     "amorce": "Courte amorce à dire aux enfants",
-    "deroulement": ["Étape 1", "Étape 2", "Étape 3"],
+    "deroulement": ["Étape 1", "Étape 2", "Étape 3", "Étape 4"],
     "materiel": ["Item 1", "Item 2", "Item 3"]
   }
 ]`;
@@ -756,7 +756,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format e
   "age": "Groupe d'âge",
   "duree": "Durée estimée",
   "amorce": "Courte amorce à dire aux enfants",
-  "deroulement": ["Étape 1", "Étape 2", "Étape 3"],
+  "deroulement": ["Étape 1", "Étape 2", "Étape 3", "Étape 4"],
   "materiel": ["Item 1", "Item 2"]
 }`;
 }
@@ -973,7 +973,7 @@ export default function App() {
       const raw = await askClaude(buildBatchPrompt({
         theme, ages, lieux, count: effectiveCount,
         monthContext: isMercredi ? { mois: MOIS_NOMS[moisIndex], annee: anneeMois, nbSemaines: mercredis.length, activitesParJour: activitesParMercredi } : null,
-      }), Math.min(6000, 700 + effectiveCount * 320));
+      }), Math.min(8000, 1200 + effectiveCount * 500));
       setIdeas(raw.map((r) => ({ id: nextId(), ...r })));
     } catch (e) {
       setError(friendlyGenerationError(e));

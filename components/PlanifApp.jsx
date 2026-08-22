@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
@@ -970,11 +970,30 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const raw = await askClaude(buildBatchPrompt({
-        theme, ages, lieux, count: effectiveCount,
-        monthContext: isMercredi ? { mois: MOIS_NOMS[moisIndex], annee: anneeMois, nbSemaines: mercredis.length, activitesParJour: activitesParMercredi } : null,
-      }), Math.min(8000, 1200 + effectiveCount * 500));
-      setIdeas(raw.map((r) => ({ id: nextId(), ...r })));
+      if (isMercredi) {
+        // Le mode mercredi a besoin d'un seul appel groupé pour bien répartir
+        // les activités par semaine dans l'ordre — on garde donc l'ancienne
+        // méthode ici (nombre d'activités généralement plus limité par mois).
+        const raw = await askClaude(buildBatchPrompt({
+          theme, ages, lieux, count: effectiveCount,
+          monthContext: { mois: MOIS_NOMS[moisIndex], annee: anneeMois, nbSemaines: mercredis.length, activitesParJour: activitesParMercredi },
+        }), Math.min(8000, 1200 + effectiveCount * 500));
+        setIdeas(raw.map((r) => ({ id: nextId(), ...r })));
+      } else {
+        // Génère une activité à la fois plutôt qu'un seul gros appel qui demande
+        // tout d'un coup — chaque requête individuelle reste bien sous la limite
+        // de 10 secondes de Netlify, contrairement à une requête unique qui
+        // demande plusieurs activités détaillées en même temps et peut dépasser
+        // cette limite (erreur "Inactivity Timeout").
+        const results = [];
+        const names = [];
+        for (let i = 0; i < effectiveCount; i++) {
+          const raw = await askClaude(buildSinglePrompt({ theme, ages, lieux, avoidNames: names, isMercredi: false }));
+          results.push({ id: nextId(), ...raw });
+          names.push(raw.nom);
+          setIdeas([...results]); // affiche les idées au fur et à mesure, pas juste à la toute fin
+        }
+      }
     } catch (e) {
       setError(friendlyGenerationError(e));
     } finally {

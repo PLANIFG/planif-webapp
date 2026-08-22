@@ -1356,7 +1356,7 @@ function IdeesView(props) {
         </SectionCard>
       )}
 
-      <SectionCard>
+      <SectionCard className="!bg-[#FBF1EC] !border-[#F3C9BE]">
         <label className="flex items-center gap-2 cursor-pointer w-fit">
           <input
             type="checkbox"
@@ -2416,7 +2416,7 @@ ${fichesHtml.join("")}
             </div>
           </SectionCard>
 
-          <SectionCard>
+          <SectionCard className="!bg-[#FBF1EC] !border-[#F3C9BE]">
             <label className="flex items-center gap-2 cursor-pointer w-fit">
               <input
                 type="checkbox"

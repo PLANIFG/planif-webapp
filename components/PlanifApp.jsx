@@ -17,6 +17,7 @@ const COLORS = {
   sage: "#E4EEE4",
   danger: "#C4523A",
   marine: "#191716",
+  peach: "#F3C9BE",
 };
 const FONT_IMPORT_URL =
   "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap";
@@ -802,14 +803,14 @@ function TextField({ value, onChange, placeholder, className = "" }) {
     />
   );
 }
-function Chip({ active, onClick, children }) {
+function Chip({ active, onClick, children, activeColor, activeTextColor }) {
   return (
     <button
       onClick={onClick}
       className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
-        active ? "text-white border-transparent" : "text-[#7A7362] border-[#DCD3C2] bg-white hover:border-[#7C9483]"
-      }`}
-      style={active ? { background: COLORS.moss } : {}}
+        active ? "border-transparent" : "text-[#7A7362] border-[#DCD3C2] bg-white hover:border-[#7C9483]"
+      } ${active && !activeTextColor ? "text-white" : ""}`}
+      style={active ? { background: activeColor || COLORS.moss, color: activeTextColor } : {}}
     >
       {children}
     </button>
@@ -1247,7 +1248,7 @@ function IdeesView(props) {
 
         <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide flex items-center gap-1.5"><Users size={13} /> Groupes d'âge</label>
         <div className="flex flex-wrap gap-2 mt-2 mb-4">
-          {(isMercredi ? MATERNELLE_AGES : AGES).map((a) => <Chip key={a} active={ages.includes(a)} onClick={() => setAges((c) => toggle(c, a))}>{a}</Chip>)}
+          {(isMercredi ? MATERNELLE_AGES : AGES).map((a) => <Chip key={a} active={ages.includes(a)} onClick={() => setAges((c) => toggle(c, a))} activeColor={COLORS.peach} activeTextColor={COLORS.mossDark}>{a}</Chip>)}
         </div>
 
         <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide flex items-center gap-1.5"><MapPin size={13} /> Lieux disponibles</label>
@@ -1393,7 +1394,7 @@ function IdeesView(props) {
         </SectionCard>
       )}
 
-      <SectionCard className="!bg-[#FBF1EC] !border-[#F3C9BE]">
+      <SectionCard className="!bg-[#F3C9BE] !border-[#F3C9BE]">
         <label className="flex items-center gap-2 cursor-pointer w-fit">
           <input
             type="checkbox"
@@ -1529,7 +1530,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
 
       <div className="mt-auto flex items-center gap-2 pt-2 border-t border-[#EDE6D8]">
         {isKept ? (
-          <button onClick={onUnkeep} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-[#E4EEE4] text-[#7C9483]"><Check size={14} /> Retenue</button>
+          <button onClick={onUnkeep} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white" style={{ background: COLORS.moss }}><Check size={14} /> Retenue</button>
         ) : (
           <button onClick={onKeep} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white" style={{ background: COLORS.moss }}><Check size={14} /> Garder</button>
         )}
@@ -2279,7 +2280,7 @@ ${fichesHtml.join("")}
                 <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide flex items-center gap-1.5"><Users size={12} /> Groupes d'âge (pour la génération)</label>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {AGES.map((a) => (
-                    <Chip key={a} active={wAges.includes(a)} onClick={() => setWAges((c) => (c.includes(a) ? c.filter((x) => x !== a) : [...c, a]))}>{a}</Chip>
+                    <Chip key={a} active={wAges.includes(a)} onClick={() => setWAges((c) => (c.includes(a) ? c.filter((x) => x !== a) : [...c, a]))} activeColor={COLORS.peach} activeTextColor={COLORS.mossDark}>{a}</Chip>
                   ))}
                 </div>
               </div>
@@ -2391,8 +2392,8 @@ ${fichesHtml.join("")}
                               <button
                                 key={d}
                                 onClick={() => toggleDomaine(jourObj.name, periode, d)}
-                                className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${cell.domaines.includes(d) ? "text-white border-transparent" : "text-[#B3A990] border-[#DCD3C2] bg-white"}`}
-                                style={cell.domaines.includes(d) ? { background: COLORS.sun } : {}}
+                                className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${cell.domaines.includes(d) ? "border-transparent" : "text-[#B3A990] border-[#DCD3C2] bg-white"}`}
+                                style={cell.domaines.includes(d) ? { background: COLORS.peach, color: COLORS.mossDark } : {}}
                               >
                                 {d}
                               </button>
@@ -2453,7 +2454,7 @@ ${fichesHtml.join("")}
             </div>
           </SectionCard>
 
-          <SectionCard className="!bg-[#FBF1EC] !border-[#F3C9BE]">
+          <SectionCard className="!bg-[#F3C9BE] !border-[#F3C9BE]">
             <label className="flex items-center gap-2 cursor-pointer w-fit">
               <input
                 type="checkbox"

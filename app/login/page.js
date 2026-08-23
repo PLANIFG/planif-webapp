@@ -63,8 +63,8 @@ export default function LoginPage() {
           --carte: #FFFFFF;
           --encre: #7C9070;
           --encre-claire: #A3B399;
-          --dore: #2A4E3B;
-          --dore-fonce: #16281D;
+          --dore: #54634A;
+          --dore-fonce: #3A4633;
           font-family: 'Nunito', sans-serif;
           color: var(--encre);
           display:flex;
@@ -280,7 +280,7 @@ export default function LoginPage() {
           <div className="carte">
             <div className="titre-connexion">
               <h2>Connexion à</h2>
-              <img src="/logo-planif-vert.png" alt="PLANIF" className="logo-titre" />
+              <img src="/planif-logo-vert-sauge.png" alt="PLANIF" className="logo-titre" />
             </div>
             <div className="sous-titre">
               {mode === "login"
@@ -354,7 +354,7 @@ export default function LoginPage() {
         </div>
 
         <div className="logo-bas-wrap">
-          <img src="/logo-planif-vert.png" alt="PLANIF" />
+          <img src="/planif-logo-vert-sauge.png" alt="PLANIF" />
         </div>
       </div>
     </>

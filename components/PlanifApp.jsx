@@ -1212,7 +1212,7 @@ export default function App() {
 
       {/* Logo PLANIF, tourné, fixé en bas à gauche */}
       <div className="no-print" style={{ position: "fixed", left: 8, bottom: "calc(45px + env(safe-area-inset-bottom))", width: 60, height: 130, display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "visible", zIndex: 2147483647, pointerEvents: "none", WebkitTransform: "translateZ(0)", transform: "translateZ(0)" }}>
-        <img src="/logo-planif-vert.png" alt="PLANIF" style={{ height: 34, width: 111, objectFit: "contain", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
+        <img src="/planif-logo-vert-sauge.png" alt="PLANIF" style={{ height: 34, width: 111, objectFit: "contain", display: "block", transform: "rotate(90deg)", transformOrigin: "center center" }} />
       </div>
     </div>
   );
@@ -1750,7 +1750,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
       </div>`;
     }).join("");
 
-    const logoUrl = `${window.location.origin}/logo-planif-vert.png`;
+    const logoUrl = `${window.location.origin}/planif-logo-vert-sauge.png`;
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(theme) || "Planification"}</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />
@@ -2226,7 +2226,7 @@ function WeeklyGridTool() {
       </div>`);
     }));
 
-    const logoUrl = `${window.location.origin}/logo-planif-vert.png`;
+    const logoUrl = `${window.location.origin}/planif-logo-vert-sauge.png`;
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Planification hebdomadaire</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />

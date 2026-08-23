@@ -61,8 +61,8 @@ export default function LoginPage() {
         .planif-login-root{
           --papier: #FBF8F2;
           --carte: #FFFFFF;
-          --encre: #3C6E52;
-          --encre-claire: #6B9179;
+          --encre: #7C9070;
+          --encre-claire: #A3B399;
           --dore: #2A4E3B;
           --dore-fonce: #16281D;
           font-family: 'Nunito', sans-serif;

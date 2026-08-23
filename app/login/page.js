@@ -59,12 +59,12 @@ export default function LoginPage() {
       />
       <style>{`
         .planif-login-root{
-          --papier: #FAF6FA;
+          --papier: #E8E9F3;
           --carte: #FFFFFF;
-          --encre: #8B7BAF;
-          --encre-claire: #B5A9CB;
-          --dore: #4A3F52;
-          --dore-fonce: #2E2635;
+          --encre: #0E79B2;
+          --encre-claire: #6BAED0;
+          --dore: #272635;
+          --dore-fonce: #16151F;
           font-family: 'Nunito', sans-serif;
           color: var(--encre);
           display:flex;

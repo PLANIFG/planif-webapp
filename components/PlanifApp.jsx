@@ -836,6 +836,7 @@ export default function App() {
   const [tab, setTab] = useState("idees"); // idees | horaire | apercu
   const [showBiblio, setShowBiblio] = useState(false);
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [showTopMenu, setShowTopMenu] = useState(false);
 
   // ---- generator state ----
   const [theme, setTheme] = useState("Éveil de la nature");
@@ -1098,39 +1099,55 @@ export default function App() {
           <span className="font-bold text-[26px]" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
             Planificateur d'activités
           </span>
-          <div className="flex items-center gap-2">
+          <div className="relative">
             <button
-              onClick={() => setShowBiblio(true)}
-              className="text-[13px] font-bold text-white px-4 py-2 rounded-full"
-              style={{ background: COLORS.moss }}
+              onClick={() => setShowTopMenu((v) => !v)}
+              className="w-10 h-10 rounded-xl bg-white border border-[#E3DACB] flex items-center justify-center text-xl font-bold"
+              style={{ color: COLORS.mossDark }}
+              title="Menu"
             >
-              Ma bibliothèque
+              ⋯
             </button>
-            <button
-              onClick={async () => {
-                setOpeningPortal(true);
-                try {
-                  const res = await fetch("/api/create-portal-session", { method: "POST" });
-                  const data = await res.json();
-                  if (data.url) window.location.href = data.url;
-                  else alert(data.error || "Impossible d'ouvrir la gestion d'abonnement.");
-                } catch (e) {
-                  alert("Erreur réseau.");
-                } finally {
-                  setOpeningPortal(false);
-                }
-              }}
-              disabled={openingPortal}
-              className="text-[13px] font-bold text-[#7A7362] bg-white border border-[#E3DACB] px-4 py-2 rounded-full disabled:opacity-50"
-            >
-              {openingPortal ? "..." : "Gérer mon abonnement"}
-            </button>
-            <button
-              onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
-              className="text-[13px] font-bold text-[#7A7362] bg-white border border-[#E3DACB] px-4 py-2 rounded-full"
-            >
-              Se déconnecter
-            </button>
+            {showTopMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowTopMenu(false)} />
+                <div className="absolute right-0 top-12 z-20 bg-white border border-[#E3DACB] rounded-xl shadow-lg py-1.5 w-56">
+                  <button
+                    onClick={() => { setShowTopMenu(false); setShowBiblio(true); }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-[#2B2A26] hover:bg-[#FAF6FA]"
+                  >
+                    Ma bibliothèque
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowTopMenu(false);
+                      setOpeningPortal(true);
+                      try {
+                        const res = await fetch("/api/create-portal-session", { method: "POST" });
+                        const data = await res.json();
+                        if (data.url) window.location.href = data.url;
+                        else alert(data.error || "Impossible d'ouvrir la gestion d'abonnement.");
+                      } catch (e) {
+                        alert("Erreur réseau.");
+                      } finally {
+                        setOpeningPortal(false);
+                      }
+                    }}
+                    disabled={openingPortal}
+                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-[#2B2A26] hover:bg-[#FAF6FA] disabled:opacity-50"
+                  >
+                    {openingPortal ? "..." : "Gérer mon abonnement"}
+                  </button>
+                  <div className="border-t border-[#EDE6D8] my-1" />
+                  <button
+                    onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
+                    className="w-full text-left px-4 py-2.5 text-sm font-semibold text-[#7A7362] hover:bg-[#FAF6FA]"
+                  >
+                    Se déconnecter
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
         <div className="max-w-5xl mx-auto px-4 pb-3 flex flex-wrap gap-2">

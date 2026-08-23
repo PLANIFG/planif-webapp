@@ -833,12 +833,17 @@ function IconBtn({ onClick, title, children, danger }) {
 // ================= APP =================
 export default function App() {
   const [tab, setTab] = useState("idees"); // idees | horaire | apercu
+  // Remonte la page en haut à chaque changement d'onglet (idées / horaire /
+  // aperçu) — sans ça, la nouvelle vue apparaissait là où le défilement
+  // était resté, donc parfois presque tout en bas de l'écran.
+  useEffect(() => { window.scrollTo(0, 0); }, [tab]);
   const [showBiblio, setShowBiblio] = useState(false);
+  useEffect(() => { window.scrollTo(0, 0); }, [showBiblio]);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [showTopMenu, setShowTopMenu] = useState(false);
 
   // ---- generator state ----
-  const [theme, setTheme] = useState("Éveil de la nature");
+  const [theme, setTheme] = useState("");
   const [dateLabel, setDateLabel] = useState("");
   const [ages, setAges] = useState(["4-6 ans", "7-9 ans", "10-12 ans"]);
   const [lieuxOptions, setLieuxOptions] = useState(DEFAULT_LIEUX);
@@ -903,6 +908,7 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [lieux, groups, theme, settingsLoaded]);
   const [dayType, setDayType] = useState("semaine");
+  useEffect(() => { window.scrollTo(0, 0); }, [dayType]);
   const [activitesParMercredi, setActivitesParMercredi] = useState(1);
   const applyDayType = (key) => {
     const found = DAY_TYPES.find((d) => d.key === key);
@@ -2029,6 +2035,7 @@ Les valeurs possibles pour "domaines" sont EXACTEMENT : "Physique et moteur", "S
 
 function WeeklyGridTool() {
   const [wtab, setWtab] = useState("configurer"); // configurer | apercu
+  useEffect(() => { window.scrollTo(0, 0); }, [wtab]);
 
   const [educatrice, setEducatrice] = useState("");
   const [semaine, setSemaine] = useState("");

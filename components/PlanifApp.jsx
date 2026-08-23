@@ -10,13 +10,13 @@ import {
 // ---------- Design tokens ----------
 const COLORS = {
   paper: "#FBF8F2",
-  moss: "#3C6E52",
-  mossDark: "#2A4E3B",
-  sun: "#3C6E52",
+  moss: "#7C9070",
+  mossDark: "#54634A",
+  sun: "#7C9070",
   ink: "#2B2A26",
   sage: "#E4EEE4",
   danger: "#C4523A",
-  marine: "#2A4E3B",
+  marine: "#54634A",
 };
 const FONT_IMPORT_URL =
   "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap";
@@ -798,7 +798,7 @@ function TextField({ value, onChange, placeholder, className = "" }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 text-[15px] text-[#2B2A26] placeholder-[#B3A990] focus:outline-none focus:ring-2 focus:ring-[#3C6E52] focus:border-transparent ${className}`}
+      className={`w-full bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 text-[15px] text-[#2B2A26] placeholder-[#B3A990] focus:outline-none focus:ring-2 focus:ring-[#7C9070] focus:border-transparent ${className}`}
     />
   );
 }
@@ -807,7 +807,7 @@ function Chip({ active, onClick, children, activeColor, activeTextColor }) {
     <button
       onClick={onClick}
       className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
-        active ? "border-transparent" : "text-[#7A7362] border-[#DCD3C2] bg-white hover:border-[#3C6E52]"
+        active ? "border-transparent" : "text-[#7A7362] border-[#DCD3C2] bg-white hover:border-[#7C9070]"
       } ${active && !activeTextColor ? "text-white" : ""}`}
       style={active ? { background: activeColor || COLORS.moss, color: activeTextColor } : {}}
     >
@@ -824,7 +824,7 @@ function SectionCard({ children, className = "" }) {
 }
 function IconBtn({ onClick, title, children, danger }) {
   return (
-    <button onClick={onClick} title={title} className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${danger ? "hover:bg-red-50 text-red-500" : "hover:bg-[#E4EEE4] text-[#3C6E52]"}`}>
+    <button onClick={onClick} title={title} className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${danger ? "hover:bg-[#F2EEE4] text-[#7A7362] hover:text-[#10192B]" : "hover:bg-[#E4EEE4] text-[#7C9070]"}`}>
       {children}
     </button>
   );
@@ -1280,7 +1280,7 @@ function IdeesView(props) {
                     if (e.key === "Enter") { renameLieuOption(l, e.target.value); setEditingLieu(null); }
                     if (e.key === "Escape") setEditingLieu(null);
                   }}
-                  className="px-3 py-1.5 rounded-full text-sm font-semibold border border-[#3C6E52] bg-white w-32"
+                  className="px-3 py-1.5 rounded-full text-sm font-semibold border border-[#7C9070] bg-white w-32"
                 />
               </div>
             ) : (
@@ -1332,7 +1332,7 @@ function IdeesView(props) {
               <select
                 value={moisIndex}
                 onChange={(e) => setMoisIndex(Number(e.target.value))}
-                className="bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 text-[15px] text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#3C6E52]"
+                className="bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 text-[15px] text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
               >
                 {MOIS_NOMS.map((m, i) => <option key={m} value={i}>{m}</option>)}
               </select>
@@ -1340,7 +1340,7 @@ function IdeesView(props) {
                 type="number"
                 value={anneeMois}
                 onChange={(e) => setAnneeMois(Number(e.target.value) || anneeMois)}
-                className="bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 text-[15px] text-[#2B2A26] w-24 focus:outline-none focus:ring-2 focus:ring-[#3C6E52]"
+                className="bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 text-[15px] text-[#2B2A26] w-24 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
               />
             </div>
 
@@ -1397,7 +1397,7 @@ function IdeesView(props) {
       {kept.length > 0 && (
         <SectionCard>
           <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>
-            <Check size={18} className="text-[#3C6E52]" /> Retenues pour la journée ({kept.length})
+            <Check size={18} className="text-[#7C9070]" /> Retenues pour la journée ({kept.length})
           </h2>
           <ul className="space-y-1.5 mb-2">
             {kept.map((i) => (
@@ -1416,7 +1416,7 @@ function IdeesView(props) {
             type="checkbox"
             checked={transitionEnabled}
             onChange={(e) => setTransitionEnabled(e.target.checked)}
-            className="w-4 h-4 rounded accent-[#3C6E52]"
+            className="w-4 h-4 rounded accent-[#7C9070]"
           />
           <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition <span className="font-normal text-xs text-[#7A7362]">(coloriages et mots cachés)</span></span>
         </label>
@@ -1434,7 +1434,7 @@ function IdeesView(props) {
             {transitionError && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{transitionError}</p>}
             {transitionData && !transitionError && (
               <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
-                <p className="text-xs font-bold text-[#3C6E52] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
+                <p className="text-xs font-bold text-[#7C9070] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
                 <p className="text-xs text-[#7A7362] mb-2">Mots cachés et coloriage.</p>
                 {transitionData.imagePrompts?.length > 0 && (
                   <div className="pt-2 border-t border-[#EDE6D8]">
@@ -1443,14 +1443,14 @@ function IdeesView(props) {
                     {transitionData.imagePrompts.map((p, i) => (
                       <div key={i} className="flex items-center gap-2 bg-[#FBF3E4] rounded px-2 py-1 mt-1">
                         <p className="text-xs text-[#2B2A26] italic flex-1">« {p} »</p>
-                        <button onClick={() => navigator.clipboard.writeText(p)} className="text-[10px] font-bold text-[#3C6E52] bg-white border border-[#DCD3C2] rounded px-2 py-1 shrink-0">Copier</button>
+                        <button onClick={() => navigator.clipboard.writeText(p)} className="text-[10px] font-bold text-[#7C9070] bg-white border border-[#DCD3C2] rounded px-2 py-1 shrink-0">Copier</button>
                       </div>
                     ))}
                     <a href="https://educol.net" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-white px-3 py-1.5 rounded-lg" style={{ background: COLORS.moss }}>
                       Ouvrir educol.net ↗
                     </a>
                     <div className="mt-2">
-                      <label className="text-xs font-semibold text-[#3C6E52] cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DCD3C2] hover:border-[#3C6E52]">
+                      <label className="text-xs font-semibold text-[#7C9070] cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DCD3C2] hover:border-[#7C9070]">
                         <Sparkles size={12} /> Importer une ou plusieurs images
                         <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onTransitionImageUpload(e.target.files)} />
                       </label>
@@ -1491,7 +1491,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         {isEditing ? <TextField value={idea.nom} onChange={(v) => onUpdate({ nom: v })} className="font-semibold" /> : (
           <h3 className="font-bold text-[#2B2A26]" style={{ fontFamily: "Baloo 2, sans-serif" }}>{idea.nom}</h3>
         )}
-        <button onClick={onEdit} className="shrink-0 text-[#B3A990] hover:text-[#3C6E52]" title="Modifier"><Pencil size={15} /></button>
+        <button onClick={onEdit} className="shrink-0 text-[#B3A990] hover:text-[#7C9070]" title="Modifier"><Pencil size={15} /></button>
       </div>
 
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#7A7362] mb-3">
@@ -1504,7 +1504,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362] mb-1">Amorce</p>
         {idea.amorce ? (
           isEditing ? (
-            <textarea value={idea.amorce} onChange={(e) => onUpdate({ amorce: e.target.value })} rows={3} className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#3C6E52]" />
+            <textarea value={idea.amorce} onChange={(e) => onUpdate({ amorce: e.target.value })} rows={3} className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#7C9070]" />
           ) : (
             <p className="text-sm text-[#2B2A26] italic">{idea.amorce}</p>
           )
@@ -1523,7 +1523,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
             </li>
           ))}
         </ul>
-        {isEditing && <button onClick={() => onAddListItem("deroulement")} className="mt-1 text-xs font-semibold text-[#3C6E52] flex items-center gap-1"><Plus size={12} /> Étape</button>}
+        {isEditing && <button onClick={() => onAddListItem("deroulement")} className="mt-1 text-xs font-semibold text-[#7C9070] flex items-center gap-1"><Plus size={12} /> Étape</button>}
       </div>
 
       <div className="mb-4">
@@ -1535,13 +1535,13 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
               {isEditing ? (
                 <div className="flex-1 flex items-center gap-1">
                   <TextField value={m} onChange={(v) => onUpdateListField("materiel", i, v)} />
-                  <button onClick={() => onRemoveListItem("materiel", i)} className="text-[#B3A990] hover:text-red-500"><Trash2 size={13} /></button>
+                  <button onClick={() => onRemoveListItem("materiel", i)} className="text-[#B3A990] hover:text-[#10192B]"><Trash2 size={13} /></button>
                 </div>
               ) : <span>{m}</span>}
             </li>
           ))}
         </ul>
-        {isEditing && <button onClick={() => onAddListItem("materiel")} className="mt-1 text-xs font-semibold text-[#3C6E52] flex items-center gap-1"><Plus size={12} /> Item</button>}
+        {isEditing && <button onClick={() => onAddListItem("materiel")} className="mt-1 text-xs font-semibold text-[#7C9070] flex items-center gap-1"><Plus size={12} /> Item</button>}
       </div>
 
       <div className="mt-auto flex items-center gap-2 pt-2 border-t border-[#EDE6D8]">
@@ -1589,7 +1589,7 @@ function HoraireView({
             </div>
           ))}
         </div>
-        <button onClick={addGroup} className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-[#3C6E52] hover:underline"><Plus size={15} /> Ajouter un groupe</button>
+        <button onClick={addGroup} className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-[#7C9070] hover:underline"><Plus size={15} /> Ajouter un groupe</button>
       </SectionCard>
 
       <SectionCard>
@@ -1617,13 +1617,13 @@ function HoraireView({
         </div>
 
         <div className="flex flex-wrap gap-2 mt-4">
-          <button onClick={scheduleOps.addFixe} className="flex items-center gap-1.5 text-sm font-semibold text-[#3C6E52] border border-[#DCD3C2] rounded-lg px-3 py-1.5 hover:border-[#3C6E52]">
+          <button onClick={scheduleOps.addFixe} className="flex items-center gap-1.5 text-sm font-semibold text-[#7C9070] border border-[#DCD3C2] rounded-lg px-3 py-1.5 hover:border-[#7C9070]">
             <Plus size={14} /> Bloc fixe
           </button>
-          <button onClick={scheduleOps.addRotation} className="flex items-center gap-1.5 text-sm font-semibold text-[#3C6E52] border border-[#DCD3C2] rounded-lg px-3 py-1.5 hover:border-[#3C6E52]">
+          <button onClick={scheduleOps.addRotation} className="flex items-center gap-1.5 text-sm font-semibold text-[#7C9070] border border-[#DCD3C2] rounded-lg px-3 py-1.5 hover:border-[#7C9070]">
             <Plus size={14} /> Plage de rotation
           </button>
-          <button onClick={scheduleOps.addDiner} className="flex items-center gap-1.5 text-sm font-semibold text-[#3C6E52] border border-[#DCD3C2] rounded-lg px-3 py-1.5 hover:border-[#3C6E52]">
+          <button onClick={scheduleOps.addDiner} className="flex items-center gap-1.5 text-sm font-semibold text-[#7C9070] border border-[#DCD3C2] rounded-lg px-3 py-1.5 hover:border-[#7C9070]">
             <Plus size={14} /> Dîner (par groupe)
           </button>
         </div>
@@ -1658,10 +1658,10 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops }) {
     <div className="border border-[#E3DACB] rounded-xl p-3 bg-white/60">
       <div className="flex items-start gap-2">
         <div className="flex flex-col gap-1 pt-1">
-          <button disabled={isFirst} onClick={() => ops.move(row.id, -1)} className="text-[#B3A990] hover:text-[#3C6E52] disabled:opacity-30">
+          <button disabled={isFirst} onClick={() => ops.move(row.id, -1)} className="text-[#B3A990] hover:text-[#7C9070] disabled:opacity-30">
             <ChevronRight size={14} style={{ transform: "rotate(-90deg)" }} />
           </button>
-          <button disabled={isLast} onClick={() => ops.move(row.id, 1)} className="text-[#B3A990] hover:text-[#3C6E52] disabled:opacity-30">
+          <button disabled={isLast} onClick={() => ops.move(row.id, 1)} className="text-[#B3A990] hover:text-[#7C9070] disabled:opacity-30">
             <ChevronRight size={14} style={{ transform: "rotate(90deg)" }} />
           </button>
         </div>
@@ -1718,7 +1718,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
       }
       return `<tr><td style="padding:10px;font-weight:700;white-space:nowrap;border-bottom:1px solid #EDE6D8;">${escapeHtml(row.time)}</td><td colspan="${groups.length}" style="padding:10px;border-bottom:1px solid #EDE6D8;">${escapeHtml(row.label)}</td></tr>`;
     }).join("");
-    const headerCells = groups.map((g) => `<th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">${escapeHtml(g)}</th>`).join("");
+    const headerCells = groups.map((g) => `<th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">${escapeHtml(g)}</th>`).join("");
     const materialHtml = materialList.map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
 
     let monthlyHtml = "";
@@ -1731,9 +1731,9 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
           : "—";
         return `<tr style="border-bottom:1px solid #EDE6D8;"><td style="padding:10px;font-weight:700;white-space:nowrap;vertical-align:top;">${escapeHtml(formatDateFr(d))}</td><td style="padding:10px;vertical-align:top;">${cellHtml}</td></tr>`;
       }).join("");
-      monthlyHtml = `<p style="color:#2A4E3B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire mensuelle</p>
-<h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(theme) || "Thème du mois"}</h1>
-<table style="margin-bottom:24px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Date</th><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Activité</th></tr></thead><tbody>${monthlyRows}</tbody></table>
+      monthlyHtml = `<p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire mensuelle</p>
+<h1 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(theme) || "Thème du mois"}</h1>
+<table style="margin-bottom:24px;"><thead><tr><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Date</th><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Activité</th></tr></thead><tbody>${monthlyRows}</tbody></table>
 <div style="page-break-before:always;"></div>`;
     }
 
@@ -1741,12 +1741,12 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
       const etapes = (st.deroulement || []).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
       const materiel = (st.materiel || []).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
       return `<div style="page-break-before:always;padding:24px 0;">
-        <p style="color:#2A4E3B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
-        <h2 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
+        <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
+        <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <p style="color:#7A7362;">${escapeHtml(st.age)} · ${escapeHtml(st.duree)}</p>
-        ${st.amorce ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(st.amorce)}</p>` : ""}
-        ${etapes ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
-        ${materiel ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
+        ${st.amorce ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(st.amorce)}</p>` : ""}
+        ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
+        ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
       </div>`;
     }).join("");
 
@@ -1755,11 +1755,11 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />
 ${monthlyHtml}
-<p style="color:#2A4E3B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire de la journée</p>
-<h1 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(theme) || "Thème de la journée"}</h1>
+<p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire de la journée</p>
+<h1 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(theme) || "Thème de la journée"}</h1>
 ${dateLabel ? `<p style="color:#7A7362;">${escapeHtml(dateLabel)}</p>` : ""}
-<table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Heure</th>${headerCells}</tr></thead><tbody>${rowsHtml}</tbody></table>
-${materialList.length ? `<h2 style="color:#2A4E3B;margin-top:24px;">Matériel</h2><ul style="list-style:none;padding-left:0;">${materialHtml}</ul>` : ""}
+<table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Heure</th>${headerCells}</tr></thead><tbody>${rowsHtml}</tbody></table>
+${materialList.length ? `<h2 style="color:#54634A;margin-top:24px;">Matériel</h2><ul style="list-style:none;padding-left:0;">${materialHtml}</ul>` : ""}
 ${fichesHtml}
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
 </body></html>`;
@@ -1777,7 +1777,7 @@ ${fichesHtml}
 
   return (
     <div className="print-root max-w-4xl mx-auto px-4 py-8">
-      <button onClick={onBack} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52] mb-4">
+      <button onClick={onBack} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#7C9070] mb-4">
         <ChevronLeft size={16} /> Retour
       </button>
       {isMercredi && mercredis.length > 0 && (
@@ -2196,18 +2196,18 @@ function WeeklyGridTool() {
     const rows = jours.map((jourObj) => {
       const c = visiblePeriodes.map((periode) => {
         const cell = getCell(jourObj.name, periode);
-        const labelStyle = "font-weight:700;font-size:11px;color:#3C6E52;";
+        const labelStyle = "font-weight:700;font-size:11px;color:#7C9070;";
         const valueStyle = "font-size:11px;color:#2B2A26;margin-bottom:4px;";
         return `<td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;">
           <div style="${labelStyle}">Activité :</div><div style="${valueStyle}">${escapeHtml(cell.activite) || "—"}</div>
           ${cell.resume ? `<div style="${labelStyle}">Description :</div><div style="${valueStyle}">${escapeHtml(cell.resume)}</div>` : ""}
           ${cell.materiel?.filter((m) => m.trim()).length ? `<div style="${labelStyle}">Matériel :</div><div style="${valueStyle}">${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}
-          ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div style="font-size:11px;color:#3C6E52;">${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
+          ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div style="font-size:11px;color:#7C9070;">${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
         </td>`;
       }).join("");
       return `<tr><td style="padding:10px;vertical-align:top;border-bottom:1px solid #EDE6D8;font-weight:700;white-space:nowrap;">${escapeHtml(jourObj.name)}<div style="font-weight:400;font-size:11px;color:#7A7362;margin-top:2px;">Lieu : ${escapeHtml(jourObj.lieu) || "—"}</div></td>${c}</tr>`;
     }).join("");
-    const headerCells = visiblePeriodes.map((p) => `<th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">${escapeHtml(p)}</th>`).join("");
+    const headerCells = visiblePeriodes.map((p) => `<th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">${escapeHtml(p)}</th>`).join("");
 
     const fichesHtml = [];
     jours.forEach((jourObj) => visiblePeriodes.forEach((periode) => {
@@ -2216,12 +2216,12 @@ function WeeklyGridTool() {
       const etapes = (c.description || "").split("\n").filter((l) => l.trim()).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
       const materiel = (c.materiel || []).filter((m) => m.trim()).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
       fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
-        <p style="color:#2A4E3B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
-        <h2 style="color:#2A4E3B;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
+        <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
+        <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         ${c.domaines.length ? `<p style="color:#7A7362;">${c.domaines.map(escapeHtml).join(" · ")}</p>` : ""}
-        ${c.amorce ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(c.amorce)}</p>` : ""}
-        ${etapes ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
-        ${materiel ? `<h3 style="color:#3C6E52;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
+        ${c.amorce ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(c.amorce)}</p>` : ""}
+        ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
+        ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
         ${c.remarques ? `<p style="color:#7A7362;font-style:italic;margin-top:12px;">${escapeHtml(c.remarques)}</p>` : ""}
       </div>`);
     }));
@@ -2230,16 +2230,16 @@ function WeeklyGridTool() {
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Planification hebdomadaire</title>
 <style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />
-<p style="color:#2A4E3B;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
-<h1 style="color:#2A4E3B;margin:4px 0 14px;">Planification hebdomadaire</h1>
+<p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
+<h1 style="color:#54634A;margin:4px 0 14px;">Planification hebdomadaire</h1>
 <table style="margin-bottom:6px;"><tr>
-  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Groupe : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(groupeNom) || "—"}</span></td>
-  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Éducateur·trice : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(educatrice) || "—"}</span></td>
+  <td style="padding:4px 0;color:#54634A;font-weight:700;">Groupe : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(groupeNom) || "—"}</span></td>
+  <td style="padding:4px 0;color:#54634A;font-weight:700;">Éducateur·trice : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(educatrice) || "—"}</span></td>
 </tr><tr>
-  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Semaine : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(semaine) || "—"}</span></td>
-  <td style="padding:4px 0;color:#2A4E3B;font-weight:700;">Thème : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(theme) || "—"}</span></td>
+  <td style="padding:4px 0;color:#54634A;font-weight:700;">Semaine : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(semaine) || "—"}</span></td>
+  <td style="padding:4px 0;color:#54634A;font-weight:700;">Thème : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(theme) || "—"}</span></td>
 </tr></table>
-<table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#3C6E52;color:white;font-size:11px;text-transform:uppercase;">Jour</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table>
+<table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Jour</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table>
 ${fichesHtml.join("")}
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
 </body></html>`;
@@ -2318,7 +2318,7 @@ ${fichesHtml.join("")}
                   <IconBtn danger title="Retirer" onClick={() => removeJour(idx)}><Trash2 size={13} /></IconBtn>
                 </div>
               ))}
-              <button onClick={addJour} className="flex items-center gap-1 text-sm font-semibold text-[#3C6E52]"><Plus size={14} /> Jour</button>
+              <button onClick={addJour} className="flex items-center gap-1 text-sm font-semibold text-[#7C9070]"><Plus size={14} /> Jour</button>
             </div>
             <button
               onClick={async () => {
@@ -2349,13 +2349,13 @@ ${fichesHtml.join("")}
               {periodes.map((p, idx) => (
                 <div key={idx} className="flex items-center gap-1 bg-white border border-[#DCD3C2] rounded-lg pl-1 pr-1 py-1">
                   <label className="flex items-center gap-1.5 pl-1.5 cursor-pointer">
-                    <input type="checkbox" checked={selectedPeriodes.includes(p)} onChange={() => togglePeriodeSelected(p)} className="w-4 h-4 accent-[#3C6E52]" />
+                    <input type="checkbox" checked={selectedPeriodes.includes(p)} onChange={() => togglePeriodeSelected(p)} className="w-4 h-4 accent-[#7C9070]" />
                     <input value={p} onChange={(e) => renamePeriode(idx, e.target.value)} placeholder="Ex. Midi" className="text-sm w-28 focus:outline-none" />
                   </label>
                   <IconBtn danger title="Retirer" onClick={() => removePeriode(idx)}><Trash2 size={13} /></IconBtn>
                 </div>
               ))}
-              <button onClick={addPeriode} className="flex items-center gap-1 text-sm font-semibold text-[#3C6E52] px-2"><Plus size={14} /> Période</button>
+              <button onClick={addPeriode} className="flex items-center gap-1 text-sm font-semibold text-[#7C9070] px-2"><Plus size={14} /> Période</button>
             </div>
 
             <button
@@ -2392,7 +2392,7 @@ ${fichesHtml.join("")}
                             <button
                               onClick={() => regenerateCell(jourObj.name, periode, jourObj.lieu)}
                               disabled={loadingCell === key || !theme.trim()}
-                              className="text-[#3C6E52] hover:text-[#2A4E3B] disabled:opacity-40"
+                              className="text-[#7C9070] hover:text-[#54634A] disabled:opacity-40"
                               title="Générer / régénérer cette case"
                             >
                               {loadingCell === key ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
@@ -2417,7 +2417,7 @@ ${fichesHtml.join("")}
                           </div>
                           <TextField value={cell.remarques} onChange={(v) => setCell(jourObj.name, periode, { remarques: v })} placeholder="Moyens / remarques" />
 
-                          <button onClick={() => setExpandedCell(expandedCell === key ? null : key)} className="mt-2 text-xs font-semibold text-[#3C6E52] hover:underline">
+                          <button onClick={() => setExpandedCell(expandedCell === key ? null : key)} className="mt-2 text-xs font-semibold text-[#7C9070] hover:underline">
                             {expandedCell === key ? "▲ Cacher la fiche" : "▼ Déroulement et matériel"}
                           </button>
                           {expandedCell === key && (
@@ -2428,7 +2428,7 @@ ${fichesHtml.join("")}
                                   value={cell.amorce}
                                   onChange={(e) => setCell(jourObj.name, periode, { amorce: e.target.value })}
                                   rows={2}
-                                  className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#3C6E52]"
+                                  className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
                                 />
                               ) : (
                                 <p className="text-xs text-[#B3A990]">{cell.amorceError ? `Échec : ${cell.amorceError}` : "Pas encore générée."}</p>
@@ -2440,7 +2440,7 @@ ${fichesHtml.join("")}
                                 onChange={(e) => setCell(jourObj.name, periode, { description: e.target.value })}
                                 rows={3}
                                 placeholder="Étape 1&#10;Étape 2&#10;Étape 3"
-                                className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] placeholder-[#B3A990] focus:outline-none focus:ring-2 focus:ring-[#3C6E52]"
+                                className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] placeholder-[#B3A990] focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
                               />
                               <label className="text-[10px] font-bold uppercase tracking-wide text-[#7A7362]">Matériel</label>
                               <div className="space-y-1">
@@ -2455,7 +2455,7 @@ ${fichesHtml.join("")}
                                     <IconBtn danger title="Retirer" onClick={() => setCell(jourObj.name, periode, { materiel: cell.materiel.filter((_, xi) => xi !== mi) })}><Trash2 size={13} /></IconBtn>
                                   </div>
                                 ))}
-                                <button onClick={() => setCell(jourObj.name, periode, { materiel: [...cell.materiel, ""] })} className="flex items-center gap-1 text-xs font-semibold text-[#3C6E52]">
+                                <button onClick={() => setCell(jourObj.name, periode, { materiel: [...cell.materiel, ""] })} className="flex items-center gap-1 text-xs font-semibold text-[#7C9070]">
                                   <Plus size={12} /> Item
                                 </button>
                               </div>
@@ -2476,7 +2476,7 @@ ${fichesHtml.join("")}
                 type="checkbox"
                 checked={transitionEnabled}
                 onChange={(e) => setTransitionEnabled(e.target.checked)}
-                className="w-4 h-4 rounded accent-[#3C6E52]"
+                className="w-4 h-4 rounded accent-[#7C9070]"
               />
               <span className="font-semibold" style={{ fontFamily: "Baloo 2, sans-serif" }}>Fiches de transition <span className="font-normal text-xs text-[#7A7362]">(coloriages et mots cachés)</span></span>
             </label>
@@ -2496,7 +2496,7 @@ ${fichesHtml.join("")}
                 {transitionError && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{transitionError}</p>}
                 {transitionData && !transitionError && (
                   <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
-                    <p className="text-xs font-bold text-[#3C6E52] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
+                    <p className="text-xs font-bold text-[#7C9070] mb-2">✓ Prêtes — s'ajouteront à l'aperçu</p>
                     <p className="text-xs text-[#7A7362] mb-2">Mots cachés et coloriage.</p>
                     {transitionData.imagePrompts?.length > 0 && (
                       <div className="pt-2 border-t border-[#EDE6D8]">
@@ -2505,14 +2505,14 @@ ${fichesHtml.join("")}
                         {transitionData.imagePrompts.map((p, i) => (
                           <div key={i} className="flex items-center gap-2 bg-[#FBF3E4] rounded px-2 py-1 mt-1">
                             <p className="text-xs text-[#2B2A26] italic flex-1">« {p} »</p>
-                            <button onClick={() => navigator.clipboard.writeText(p)} className="text-[10px] font-bold text-[#3C6E52] bg-white border border-[#DCD3C2] rounded px-2 py-1 shrink-0">Copier</button>
+                            <button onClick={() => navigator.clipboard.writeText(p)} className="text-[10px] font-bold text-[#7C9070] bg-white border border-[#DCD3C2] rounded px-2 py-1 shrink-0">Copier</button>
                           </div>
                         ))}
                         <a href="https://educol.net" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-white px-3 py-1.5 rounded-lg" style={{ background: COLORS.moss }}>
                           Ouvrir educol.net ↗
                         </a>
                         <div className="mt-2">
-                          <label className="text-xs font-semibold text-[#3C6E52] cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DCD3C2] hover:border-[#3C6E52]">
+                          <label className="text-xs font-semibold text-[#7C9070] cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#DCD3C2] hover:border-[#7C9070]">
                             <Sparkles size={12} /> Importer une ou plusieurs images
                             <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleTransitionImageUpload(e.target.files)} />
                           </label>
@@ -2549,7 +2549,7 @@ ${fichesHtml.join("")}
         </div>
       ) : (
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <button onClick={() => setWtab("configurer")} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52] mb-4">
+          <button onClick={() => setWtab("configurer")} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#7C9070] mb-4">
             <ChevronLeft size={16} /> Retour
           </button>
           {visiblePeriodes.length > 0 && (
@@ -2720,7 +2720,7 @@ function BibliothequeView({ onBack }) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#3C6E52]">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#7C9070]">
         <ChevronLeft size={16} /> Retour
       </button>
 
@@ -2731,7 +2731,7 @@ function BibliothequeView({ onBack }) {
             value={libraryName}
             onChange={(e) => setLibraryName(e.target.value)}
             onBlur={(e) => saveLibraryName(e.target.value)}
-            className="w-full bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-[#3C6E52]"
+            className="w-full bg-white border border-[#DCD3C2] rounded-lg px-3 py-2 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
             style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}
           />
         </div>
@@ -2754,14 +2754,14 @@ function BibliothequeView({ onBack }) {
               <div key={item.id} className={`bg-white border border-[#E3DACB] rounded-2xl p-4 ${isOpen ? "sm:col-span-2" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="font-bold" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{item.title}</h4>
-                  <button onClick={() => removeItem(item.id)} className="text-[#B3A990] hover:text-red-500 shrink-0"><Trash2 size={14} /></button>
+                  <button onClick={() => removeItem(item.id)} className="text-[#B3A990] hover:text-[#10192B] shrink-0"><Trash2 size={14} /></button>
                 </div>
                 <p className="text-xs text-[#7A7362] mt-1">
                   Enregistrée le {new Date(item.created_at).toLocaleDateString("fr-CA")}
                 </p>
                 <button
                   onClick={() => setExpandedId(isOpen ? null : item.id)}
-                  className="mt-2 text-xs font-semibold text-[#3C6E52] hover:underline"
+                  className="mt-2 text-xs font-semibold text-[#7C9070] hover:underline"
                 >
                   {isOpen ? "▲ Cacher le contenu" : "▼ Voir le contenu"}
                 </button>

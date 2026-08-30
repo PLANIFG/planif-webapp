@@ -1758,7 +1758,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
 
     const logoUrl = `${window.location.origin}/planif-logo-vert-sauge.png`;
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(theme) || "Planification"}</title>
-<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{margin:12mm;}}</style></head><body>
+<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;right:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />
 ${monthlyHtml}
 <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire de la journée</p>
@@ -2235,7 +2235,7 @@ function WeeklyGridTool() {
 
     const logoUrl = `${window.location.origin}/planif-logo-vert-sauge.png`;
     const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Planification hebdomadaire</title>
-<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;left:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
+<style>body{font-family:-apple-system,Nunito,sans-serif;color:#2B2A26;margin:24px;}table{width:100%;border-collapse:collapse;}.print-logo{position:fixed;bottom:8mm;right:8mm;height:12mm;width:auto;opacity:0.9;}@media print{@page{size:landscape;margin:12mm;}}</style></head><body>
 <img src="${logoUrl}" class="print-logo" alt="PLANIF" />
 <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résumé de la semaine</p>
 <h1 style="color:#54634A;margin:4px 0 14px;">Planification hebdomadaire</h1>

@@ -20,7 +20,10 @@ export default function Home() {
         .select("status")
         .eq("user_id", data.session.user.id)
         .maybeSingle();
-      if (sub?.status === "active" || sub?.status === "past_due") {
+      // "trialing" doit être autorisé — sinon toute personne en plein essai
+      // gratuit de 7 jours (le statut normal juste après un paiement) se
+      // faisait renvoyer vers la page d'abonnement au lieu d'entrer dans l'app.
+      if (sub?.status === "active" || sub?.status === "past_due" || sub?.status === "trialing") {
         setSubActive(true);
       } else {
         window.location.href = "/subscribe";

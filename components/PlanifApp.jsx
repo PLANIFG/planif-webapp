@@ -1020,12 +1020,27 @@ export default function App() {
       const mots = Array.isArray(raw.mots) ? raw.mots : [];
       const imagePrompts = Array.isArray(raw.imagePrompts) ? raw.imagePrompts.filter(Boolean) : [];
       setTransitionData({ formes, wordSearch: buildWordSearch(mots), imagePrompts });
+      setTransitionForTheme(theme);
     } catch (e) {
       setTransitionError(friendlyGenerationError(e, "Échec de la génération"));
     } finally {
       setLoadingTransition(false);
     }
   };
+  // Génération automatique dès que la case est cochée (ou que le thème
+  // change ensuite) — plus besoin de cliquer sur un bouton. Se déclenche
+  // uniquement dans le navigateur (useEffect), jamais pendant le rendu
+  // initial, donc sans risque d'incohérence serveur/client.
+  const [transitionForTheme, setTransitionForTheme] = useState(null);
+  const transitionEnCours = useRef(false);
+  useEffect(() => {
+    if (!transitionEnabled || !theme.trim()) return;
+    if (transitionForTheme === theme) return;
+    if (transitionEnCours.current) return;
+    transitionEnCours.current = true;
+    generateTransition().finally(() => { transitionEnCours.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transitionEnabled, theme]);
   const isMercredi = dayType === "mercredi";
   const effectiveCount = isMercredi ? Math.max(mercredis.length, 1) * activitesParMercredi : count;
 
@@ -1490,15 +1505,9 @@ function IdeesView(props) {
         </label>
         {transitionEnabled && (
           <div className="mt-3 ml-6">
-            <button
-              onClick={generateTransition}
-              disabled={loadingTransition || !theme.trim()}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
-              style={{ background: COLORS.moss }}
-            >
-              {loadingTransition ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-              {loadingTransition ? "Génération en cours…" : transitionData ? "Régénérer" : "Générer les fiches"}
-            </button>
+            {loadingTransition && (
+              <p className="text-sm text-[#7A7362] flex items-center gap-2"><Loader2 size={15} className="animate-spin" /> Génération en cours…</p>
+            )}
             {transitionError && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{transitionError}</p>}
             {transitionData && !transitionError && (
               <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
@@ -2090,7 +2099,16 @@ ${fichesHtml}
               await supabase.from("library_items").insert({
                 user_id: user.id,
                 title: theme || "Sans titre",
-                payload: { theme, dateLabel, kept },
+                payload: {
+                  type: "journee",
+                  theme, dateLabel, groups, kept, materialList,
+                  isMercredi, activitesParMercredi,
+                  mercredis: (mercredis || []).map((d) => d.toISOString()),
+                  computedRows: computedRows.map((row) => ({
+                    ...row,
+                    cells: row.cells ? row.cells.map((c) => (c ? { nom: c.nom, lieu: c.lieu } : null)) : undefined,
+                  })),
+                },
               });
             }
             setSavingBiblio(false);
@@ -2246,12 +2264,25 @@ function WeeklyGridTool() {
       const mots = Array.isArray(raw.mots) ? raw.mots : [];
       const imagePrompts = Array.isArray(raw.imagePrompts) ? raw.imagePrompts.filter(Boolean) : [];
       setTransitionData({ formes, wordSearch: buildWordSearch(mots), imagePrompts });
+      setTransitionForTheme(theme);
     } catch (e) {
       setTransitionError(friendlyGenerationError(e, "Échec de la génération"));
     } finally {
       setLoadingTransition(false);
     }
   };
+  // Même logique automatique que dans les autres modes : dès que la case
+  // est cochée (ou que le thème change ensuite), plus besoin de bouton.
+  const [transitionForTheme, setTransitionForTheme] = useState(null);
+  const transitionEnCours = useRef(false);
+  useEffect(() => {
+    if (!transitionEnabled || !theme.trim()) return;
+    if (transitionForTheme === theme) return;
+    if (transitionEnCours.current) return;
+    transitionEnCours.current = true;
+    generateTransition().finally(() => { transitionEnCours.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transitionEnabled, theme]);
 
   const getCell = (jour, periode) => cells[weeklyCellKey(jour, periode)] || weeklyEmptyCell();
   const setCell = (jour, periode, patch) =>
@@ -2676,16 +2707,8 @@ ${fichesHtml.join("")}
             </label>
             {transitionEnabled && (
               <div className="mt-3 ml-6">
-                {!transitionData && (
-                  <button
-                    onClick={generateTransition}
-                    disabled={loadingTransition || !theme.trim()}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-sm disabled:opacity-50"
-                    style={{ background: COLORS.moss }}
-                  >
-                    {loadingTransition && <Loader2 size={15} className="animate-spin" />}
-                    {loadingTransition ? "Génération en cours…" : "Générer les fiches"}
-                  </button>
+                {loadingTransition && (
+                  <p className="text-sm text-[#7A7362] flex items-center gap-2"><Loader2 size={15} className="animate-spin" /> Génération en cours…</p>
                 )}
                 {transitionError && <p className="text-sm mt-2" style={{ color: COLORS.danger }}>{transitionError}</p>}
                 {transitionData && !transitionError && (
@@ -2866,7 +2889,11 @@ ${fichesHtml.join("")}
                   await supabase.from("library_items").insert({
                     user_id: user.id,
                     title: theme || groupeNom || "Sans titre",
-                    payload: { groupeNom, educatrice, semaine, theme, jours, cells },
+                    payload: {
+                      type: "semaine",
+                      groupeNom, educatrice, semaine, theme, jours, cells,
+                      periodes: visiblePeriodes,
+                    },
                   });
                 }
                 setSavingBiblio(false);
@@ -2949,6 +2976,8 @@ function BibliothequeView({ onBack }) {
             const p = item.payload || {};
             const keptList = Array.isArray(p.kept) ? p.kept : null;
             const joursList = Array.isArray(p.jours) ? p.jours : null;
+            const computedRowsList = Array.isArray(p.computedRows) ? p.computedRows : null;
+            const groupsList = Array.isArray(p.groups) ? p.groups : null;
             return (
               <div key={item.id} className={`bg-white border border-[#E3DACB] rounded-2xl p-4 ${isOpen ? "sm:col-span-2" : ""}`}>
                 <div className="flex items-start justify-between gap-2">
@@ -2972,6 +3001,56 @@ function BibliothequeView({ onBack }) {
                         {p.educatrice && <>Éducateur·trice : <strong>{p.educatrice}</strong> </>}
                         {p.semaine && <> · Semaine : <strong>{p.semaine}</strong></>}
                       </p>
+                    )}
+                    {computedRowsList && computedRowsList.length > 0 && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Horaire de la journée</p>
+                        <div className="border border-[#EDE6D8] rounded-xl overflow-hidden overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr style={{ background: COLORS.moss }}>
+                                <th className="text-left text-white font-bold p-2 whitespace-nowrap">Heure</th>
+                                {(groupsList || []).map((g, gi) => (
+                                  <th key={gi} className="text-left text-white font-bold p-2">{g}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {computedRowsList.map((row, ri) => {
+                                if (row.type === "rotation") {
+                                  return (
+                                    <tr key={ri} className="border-t border-[#EDE6D8]">
+                                      <td className="p-2 font-semibold whitespace-nowrap">{row.time}</td>
+                                      {(row.cells || []).map((c, ci) => (
+                                        <td key={ci} className="p-2">
+                                          {c?.nom}
+                                          {c?.lieu && <div className="text-[#7A7362]">{c.lieu}</div>}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  );
+                                }
+                                if (row.type === "diner") {
+                                  return (
+                                    <tr key={ri} className="border-t border-[#EDE6D8]" style={{ background: "#FBF3E4" }}>
+                                      <td className="p-2 font-semibold whitespace-nowrap">{row.time}</td>
+                                      {(groupsList || []).map((_, gi) => (
+                                        <td key={gi} className="p-2">{row.labels?.[gi] || ""}</td>
+                                      ))}
+                                    </tr>
+                                  );
+                                }
+                                return (
+                                  <tr key={ri} className="border-t border-[#EDE6D8]">
+                                    <td className="p-2 font-semibold whitespace-nowrap">{row.time}</td>
+                                    <td className="p-2" colSpan={(groupsList || []).length}>{row.label}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     )}
                     {keptList && keptList.length > 0 && (
                       <div className="space-y-3">

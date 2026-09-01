@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import {
   Sparkles, Plus, Trash2, RefreshCw, Loader2, ChevronRight, ChevronLeft,
   MapPin, Users, Wallet, ShoppingBag, Check, X, Pencil, Printer,
-  LayoutGrid, Eye, CalendarDays
+  LayoutGrid, Eye, CalendarDays, GripVertical
 } from "lucide-react";
 
 // ---------- Design tokens ----------
@@ -835,7 +835,21 @@ function useScheduleOps(setRows, groups) {
       [next[idx], next[target]] = [next[target], next[idx]];
       return next;
     });
-  return { addFixe, addRotation, addDiner, remove, update, updateLabelAt, move };
+  // Déplace le bloc `draggedId` juste avant le bloc `targetId` — utilisé par
+  // le glisser-déposer dans l'Horaire.
+  const reorder = (draggedId, targetId) =>
+    setRows((cur) => {
+      if (draggedId === targetId) return cur;
+      const draggedIdx = cur.findIndex((r) => r.id === draggedId);
+      if (draggedIdx === -1) return cur;
+      const next = [...cur];
+      const [item] = next.splice(draggedIdx, 1);
+      const targetIdx = next.findIndex((r) => r.id === targetId);
+      if (targetIdx === -1) { next.splice(draggedIdx, 0, item); return next; }
+      next.splice(targetIdx, 0, item);
+      return next;
+    });
+  return { addFixe, addRotation, addDiner, remove, update, updateLabelAt, move, reorder };
 }
 
 // ---------- small atoms ----------
@@ -1617,6 +1631,33 @@ function HoraireView({
   dateLabel, setDateLabel, groups, addGroup, removeGroup, renameGroup,
   scheduleRows, scheduleOps, kept, onBack, onContinue,
 }) {
+  // Glisser-déposer compatible souris ET doigt (événements Pointer, natifs,
+  // aucune librairie externe) — on suit le bloc "attrapé" via la poignée,
+  // et au relâchement on le déplace juste avant le bloc survolé.
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  const handleGripPointerDown = (rowId) => (e) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDraggingId(rowId);
+  };
+  const handlePointerMove = (e) => {
+    if (!draggingId) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const rowEl = el?.closest("[data-row-id]");
+    if (rowEl) {
+      const id = rowEl.getAttribute("data-row-id");
+      if (id !== dragOverId) setDragOverId(id);
+    }
+  };
+  const handlePointerUp = () => {
+    if (draggingId && dragOverId && draggingId !== dragOverId) {
+      scheduleOps.reorder(draggingId, dragOverId);
+    }
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <div>
@@ -1624,7 +1665,7 @@ function HoraireView({
         <p className="text-[#7A7362] mt-1 max-w-2xl">
           Une seule liste, dans l'ordre réel de la journée. Les blocs « Rotation » se remplissent
           automatiquement avec les {kept.length} activité{kept.length > 1 ? "s" : ""} retenue{kept.length > 1 ? "s" : ""}.
-          Réordonnez avec les flèches, modifiez les heures et libellés, ou ajoutez des blocs.
+          Glissez la poignée ⠿ pour réordonner, modifiez les heures et libellés, ou ajoutez des blocs.
         </p>
       </div>
 
@@ -1657,7 +1698,7 @@ function HoraireView({
           </p>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-2" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
           {scheduleRows.map((row, idx) => (
             <ScheduleRowEditor
               key={row.id}
@@ -1666,6 +1707,9 @@ function HoraireView({
               isFirst={idx === 0}
               isLast={idx === scheduleRows.length - 1}
               ops={scheduleOps}
+              isDragging={draggingId === row.id}
+              isDragOver={dragOverId === row.id && draggingId !== row.id}
+              onGripPointerDown={handleGripPointerDown(row.id)}
             />
           ))}
         </div>
@@ -1707,10 +1751,27 @@ function TypeBadge({ type }) {
   );
 }
 
-function ScheduleRowEditor({ row, groups, isFirst, isLast, ops }) {
+function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDragOver, onGripPointerDown }) {
   return (
-    <div className="border border-[#E3DACB] rounded-xl p-3 bg-white/60">
+    <div
+      data-row-id={row.id}
+      className="border rounded-xl p-3 bg-white/60 transition-shadow"
+      style={{
+        borderColor: isDragOver ? COLORS.moss : "#E3DACB",
+        borderWidth: isDragOver ? 2 : 1,
+        opacity: isDragging ? 0.5 : 1,
+        boxShadow: isDragOver ? "0 0 0 3px rgba(124,144,112,0.15)" : "none",
+      }}
+    >
       <div className="flex items-start gap-2">
+        <div
+          onPointerDown={onGripPointerDown}
+          className="flex flex-col items-center justify-center pt-1.5 text-[#B3A990] hover:text-[#7C9070] cursor-grab active:cursor-grabbing"
+          style={{ touchAction: "none" }}
+          title="Glisser pour réordonner"
+        >
+          <GripVertical size={16} />
+        </div>
         <div className="flex flex-col gap-1 pt-1">
           <button disabled={isFirst} onClick={() => ops.move(row.id, -1)} className="text-[#B3A990] hover:text-[#7C9070] disabled:opacity-30">
             <ChevronRight size={14} style={{ transform: "rotate(-90deg)" }} />

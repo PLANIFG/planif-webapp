@@ -939,7 +939,13 @@ export default function App() {
   const [scheduleRows, setScheduleRows] = useState(DEFAULT_SCHEDULE_ROWS);
   const scheduleOps = useScheduleOps(setScheduleRows, groups);
 
-  // ---- sauvegarde automatique (lieux, groupes, thème) liée au compte ----
+  // ---- sauvegarde automatique (groupes seulement) liée au compte ----
+  // Le thème et les lieux sélectionnés NE sont plus sauvegardés/rechargés
+  // automatiquement pour Journée pédagogique/Concertation/Mercredi/Horaire
+  // personnalisé — chaque nouvelle planification doit repartir à zéro sur
+  // ces deux champs. Seule la Planification hebdomadaire garde ses lieux,
+  // via son propre bouton « Enregistrer les lieux » (mécanisme séparé,
+  // non touché ici).
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   useEffect(() => {
     (async () => {
@@ -947,9 +953,7 @@ export default function App() {
       if (!user) return;
       const { data } = await supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle();
       if (data) {
-        if (data.lieux?.length) { setLieux(data.lieux); setLieuxOptions((cur) => Array.from(new Set([...cur, ...data.lieux]))); }
         if (data.groupes?.length) setGroups(data.groupes);
-        if (data.theme_par_defaut) setTheme(data.theme_par_defaut);
       }
       setSettingsLoaded(true);
     })();
@@ -963,12 +967,12 @@ export default function App() {
       if (!user) return;
       await supabase.from("user_settings").upsert({
         user_id: user.id,
-        lieux, groupes: groups, theme_par_defaut: theme,
+        groupes: groups,
         updated_at: new Date().toISOString(),
       });
     }, 1200); // sauvegarde 1,2 s après la dernière modification
     return () => clearTimeout(timeout);
-  }, [lieux, groups, theme, settingsLoaded]);
+  }, [groups, settingsLoaded]);
   const [dayType, setDayType] = useState("semaine");
   useEffect(() => { window.scrollTo(0, 0); }, [dayType]);
   const [activitesParMercredi, setActivitesParMercredi] = useState(1);
@@ -990,6 +994,11 @@ export default function App() {
     setTransitionData(null);
     setTransitionError("");
     setTransitionImages([]);
+    // Le thème et les lieux repartent à zéro pour chaque nouvelle
+    // planification — ils ne doivent pas garder la valeur de la dernière
+    // recherche.
+    setTheme("");
+    setLieux(["Gymnase", "Cuisine", "Labo créatif"]);
   };
 
   const now = new Date();

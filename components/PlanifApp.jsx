@@ -2923,6 +2923,31 @@ function BibliothequeView({ onBack }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [drafts, setDrafts] = useState({}); // { [itemId]: payload modifiable }
+  const [savingEditId, setSavingEditId] = useState(null);
+
+  const startEdit = (item) => {
+    setDrafts((cur) => ({ ...cur, [item.id]: JSON.parse(JSON.stringify(item.payload || {})) }));
+    setEditingId(item.id);
+  };
+  const cancelEdit = (itemId) => {
+    setEditingId(null);
+    setDrafts((cur) => { const next = { ...cur }; delete next[itemId]; return next; });
+  };
+  const updateDraft = (itemId, updater) => {
+    setDrafts((cur) => ({ ...cur, [itemId]: updater(cur[itemId]) }));
+  };
+  const saveEdit = async (item) => {
+    const draft = drafts[item.id];
+    if (!draft) return;
+    setSavingEditId(item.id);
+    await supabase.from("library_items").update({ payload: draft }).eq("id", item.id);
+    setItems((cur) => cur.map((i) => (i.id === item.id ? { ...i, payload: draft } : i)));
+    setSavingEditId(null);
+    setEditingId(null);
+    setDrafts((cur) => { const next = { ...cur }; delete next[item.id]; return next; });
+  };
 
   useEffect(() => {
     (async () => {
@@ -2977,7 +3002,8 @@ function BibliothequeView({ onBack }) {
         <div className="grid sm:grid-cols-2 gap-4">
           {items.map((item) => {
             const isOpen = expandedId === item.id;
-            const p = item.payload || {};
+            const isEditing = editingId === item.id;
+            const p = isEditing ? (drafts[item.id] || item.payload || {}) : (item.payload || {});
             const keptList = Array.isArray(p.kept) ? p.kept : null;
             const joursList = Array.isArray(p.jours) ? p.jours : null;
             const computedRowsList = Array.isArray(p.computedRows) ? p.computedRows : null;
@@ -2991,12 +3017,34 @@ function BibliothequeView({ onBack }) {
                 <p className="text-xs text-[#7A7362] mt-1">
                   Enregistrée le {new Date(item.created_at).toLocaleDateString("fr-CA")}
                 </p>
-                <button
-                  onClick={() => setExpandedId(isOpen ? null : item.id)}
-                  className="mt-2 text-xs font-semibold text-[#7C9070] hover:underline"
-                >
-                  {isOpen ? "▲ Cacher le contenu" : "▼ Voir le contenu"}
-                </button>
+                <div className="flex items-center gap-3 mt-2">
+                  <button
+                    onClick={() => setExpandedId(isOpen ? null : item.id)}
+                    className="text-xs font-semibold text-[#7C9070] hover:underline"
+                  >
+                    {isOpen ? "▲ Cacher le contenu" : "▼ Voir le contenu"}
+                  </button>
+                  {isOpen && !isEditing && (
+                    <button onClick={() => startEdit(item)} className="text-xs font-semibold text-[#7C9070] flex items-center gap-1">
+                      <Pencil size={11} /> Modifier
+                    </button>
+                  )}
+                  {isOpen && isEditing && (
+                    <>
+                      <button
+                        onClick={() => saveEdit(item)}
+                        disabled={savingEditId === item.id}
+                        className="text-xs font-bold text-white px-2.5 py-1 rounded-lg disabled:opacity-50"
+                        style={{ background: COLORS.moss }}
+                      >
+                        {savingEditId === item.id ? "Enregistrement…" : "✓ Enregistrer"}
+                      </button>
+                      <button onClick={() => cancelEdit(item.id)} className="text-xs font-semibold text-[#7A7362]">
+                        Annuler
+                      </button>
+                    </>
+                  )}
+                </div>
                 {isOpen && (
                   <div className="mt-3 pt-3 border-t border-[#EDE6D8] space-y-4">
                     {p.dateLabel && <p className="text-xs text-[#7A7362]">Date : {p.dateLabel}</p>}
@@ -3021,10 +3069,25 @@ function BibliothequeView({ onBack }) {
                             </thead>
                             <tbody>
                               {computedRowsList.map((row, ri) => {
+                                const updateRow = (patch) => updateDraft(item.id, (d) => ({
+                                  ...d,
+                                  computedRows: (d.computedRows || []).map((r, i) => (i === ri ? { ...r, ...patch } : r)),
+                                }));
+                                const updateDinerLabel = (gi, val) => updateDraft(item.id, (d) => ({
+                                  ...d,
+                                  computedRows: (d.computedRows || []).map((r, i) => {
+                                    if (i !== ri) return r;
+                                    const labels = [...(r.labels || [])];
+                                    labels[gi] = val;
+                                    return { ...r, labels };
+                                  }),
+                                }));
                                 if (row.type === "rotation") {
                                   return (
                                     <tr key={ri} className="border-t border-[#EDE6D8]">
-                                      <td className="p-2 font-semibold whitespace-nowrap">{row.time}</td>
+                                      <td className="p-2 font-semibold whitespace-nowrap">
+                                        {isEditing ? <TextField value={row.time} onChange={(v) => updateRow({ time: v })} className="text-xs py-1" /> : row.time}
+                                      </td>
                                       {(row.cells || []).map((c, ci) => (
                                         <td key={ci} className="p-2">
                                           {c?.nom}
@@ -3037,17 +3100,25 @@ function BibliothequeView({ onBack }) {
                                 if (row.type === "diner") {
                                   return (
                                     <tr key={ri} className="border-t border-[#EDE6D8]" style={{ background: "#FBF3E4" }}>
-                                      <td className="p-2 font-semibold whitespace-nowrap">{row.time}</td>
+                                      <td className="p-2 font-semibold whitespace-nowrap">
+                                        {isEditing ? <TextField value={row.time} onChange={(v) => updateRow({ time: v })} className="text-xs py-1" /> : row.time}
+                                      </td>
                                       {(groupsList || []).map((_, gi) => (
-                                        <td key={gi} className="p-2">{row.labels?.[gi] || ""}</td>
+                                        <td key={gi} className="p-2">
+                                          {isEditing ? <TextField value={row.labels?.[gi] || ""} onChange={(v) => updateDinerLabel(gi, v)} className="text-xs py-1" /> : (row.labels?.[gi] || "")}
+                                        </td>
                                       ))}
                                     </tr>
                                   );
                                 }
                                 return (
                                   <tr key={ri} className="border-t border-[#EDE6D8]">
-                                    <td className="p-2 font-semibold whitespace-nowrap">{row.time}</td>
-                                    <td className="p-2" colSpan={(groupsList || []).length}>{row.label}</td>
+                                    <td className="p-2 font-semibold whitespace-nowrap">
+                                      {isEditing ? <TextField value={row.time} onChange={(v) => updateRow({ time: v })} className="text-xs py-1" /> : row.time}
+                                    </td>
+                                    <td className="p-2" colSpan={(groupsList || []).length}>
+                                      {isEditing ? <TextField value={row.label} onChange={(v) => updateRow({ label: v })} className="text-xs py-1" /> : row.label}
+                                    </td>
                                   </tr>
                                 );
                               })}
@@ -3058,21 +3129,57 @@ function BibliothequeView({ onBack }) {
                     )}
                     {keptList && keptList.length > 0 && (
                       <div className="space-y-3">
-                        {keptList.map((a, i) => (
+                        {keptList.map((a, i) => {
+                          const updateActivite = (patch) => updateDraft(item.id, (d) => ({
+                            ...d,
+                            kept: (d.kept || []).map((k, ki) => (ki === i ? { ...k, ...patch } : k)),
+                          }));
+                          return (
                           <div key={i} className="border border-[#EDE6D8] rounded-xl p-3">
                             <p className="font-semibold text-sm">{a.nom}</p>
                             <p className="text-xs text-[#7A7362] mb-1.5">{[a.lieu, a.age, a.duree].filter(Boolean).join(" · ")}</p>
-                            {a.amorce && <p className="text-xs italic mb-1.5">{a.amorce}</p>}
-                            {a.deroulement?.length > 0 && (
-                              <ol className="text-xs space-y-0.5 mb-1.5">
-                                {a.deroulement.map((d, di) => <li key={di}>{di + 1}. {d}</li>)}
-                              </ol>
+                            {isEditing ? (
+                              <textarea
+                                value={a.amorce || ""}
+                                onChange={(e) => updateActivite({ amorce: e.target.value })}
+                                rows={2}
+                                placeholder="Amorce"
+                                className="w-full text-xs italic mb-1.5 bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                              />
+                            ) : (
+                              a.amorce && <p className="text-xs italic mb-1.5">{a.amorce}</p>
                             )}
-                            {a.materiel?.length > 0 && (
-                              <p className="text-xs text-[#7A7362]">Matériel : {a.materiel.join(", ")}</p>
+                            {isEditing ? (
+                              <textarea
+                                value={(a.deroulement || []).join("\n")}
+                                onChange={(e) => updateActivite({ deroulement: e.target.value.split("\n") })}
+                                rows={3}
+                                placeholder="Déroulement (une étape par ligne)"
+                                className="w-full text-xs mb-1.5 bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                              />
+                            ) : (
+                              a.deroulement?.length > 0 && (
+                                <ol className="text-xs space-y-0.5 mb-1.5">
+                                  {a.deroulement.map((d, di) => <li key={di}>{di + 1}. {d}</li>)}
+                                </ol>
+                              )
+                            )}
+                            {isEditing ? (
+                              <textarea
+                                value={(a.materiel || []).join("\n")}
+                                onChange={(e) => updateActivite({ materiel: e.target.value.split("\n") })}
+                                rows={2}
+                                placeholder="Matériel (un item par ligne)"
+                                className="w-full text-xs bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                              />
+                            ) (
+                              a.materiel?.length > 0 && (
+                                <p className="text-xs text-[#7A7362]">Matériel : {a.materiel.join(", ")}</p>
+                              )
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                     {joursList && joursList.length > 0 && (
@@ -3081,21 +3188,58 @@ function BibliothequeView({ onBack }) {
                           const dayCells = p.cells
                             ? Object.entries(p.cells).filter(([key]) => key.startsWith(`${j.name}__`))
                             : [];
+                          const updateCell = (key, patch) => updateDraft(item.id, (d) => ({
+                            ...d,
+                            cells: { ...d.cells, [key]: { ...d.cells[key], ...patch } },
+                          }));
                           return (
                             <div key={i} className="border border-[#EDE6D8] rounded-xl p-3">
                               <p className="font-semibold text-sm">{j.name}{j.lieu && <span className="font-normal text-xs text-[#7A7362]"> — {j.lieu}</span>}</p>
-                              {dayCells.map(([key, cell], ci) => cell?.activite && (
+                              {dayCells.map(([key, cell], ci) => (isEditing || cell?.activite) && (
                                 <div key={ci} className="mt-2 pt-2 border-t border-[#EDE6D8] first:mt-0 first:pt-0 first:border-0">
-                                  <p className="text-sm font-medium">{cell.activite}</p>
-                                  <p className="text-xs text-[#7A7362] mb-1">{[cell.local, cell.duree].filter(Boolean).join(" · ")}</p>
-                                  {cell.amorce && <p className="text-xs italic mb-1">{cell.amorce}</p>}
-                                  {cell.description && (
-                                    <ol className="text-xs space-y-0.5 mb-1">
-                                      {cell.description.split("\n").filter((l) => l.trim()).map((d, di) => <li key={di}>{di + 1}. {d}</li>)}
-                                    </ol>
-                                  )}
-                                  {cell.materiel?.filter((m) => m.trim()).length > 0 && (
-                                    <p className="text-xs text-[#7A7362]">Matériel : {cell.materiel.filter((m) => m.trim()).join(", ")}</p>
+                                  {isEditing ? (
+                                    <>
+                                      <TextField value={cell.activite || ""} onChange={(v) => updateCell(key, { activite: v })} placeholder="Activité" className="text-sm mb-1" />
+                                      <div className="flex gap-1.5 mb-1">
+                                        <TextField value={cell.local || ""} onChange={(v) => updateCell(key, { local: v })} placeholder="Local" className="text-xs" />
+                                        <TextField value={cell.duree || ""} onChange={(v) => updateCell(key, { duree: v })} placeholder="Durée" className="text-xs max-w-[90px]" />
+                                      </div>
+                                      <textarea
+                                        value={cell.amorce || ""}
+                                        onChange={(e) => updateCell(key, { amorce: e.target.value })}
+                                        rows={2}
+                                        placeholder="Amorce"
+                                        className="w-full text-xs italic mb-1 bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                                      />
+                                      <textarea
+                                        value={cell.description || ""}
+                                        onChange={(e) => updateCell(key, { description: e.target.value })}
+                                        rows={3}
+                                        placeholder="Déroulement (une étape par ligne)"
+                                        className="w-full text-xs mb-1 bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                                      />
+                                      <textarea
+                                        value={(cell.materiel || []).join("\n")}
+                                        onChange={(e) => updateCell(key, { materiel: e.target.value.split("\n") })}
+                                        rows={2}
+                                        placeholder="Matériel (un item par ligne)"
+                                        className="w-full text-xs bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                                      />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-sm font-medium">{cell.activite}</p>
+                                      <p className="text-xs text-[#7A7362] mb-1">{[cell.local, cell.duree].filter(Boolean).join(" · ")}</p>
+                                      {cell.amorce && <p className="text-xs italic mb-1">{cell.amorce}</p>}
+                                      {cell.description && (
+                                        <ol className="text-xs space-y-0.5 mb-1">
+                                          {cell.description.split("\n").filter((l) => l.trim()).map((d, di) => <li key={di}>{di + 1}. {d}</li>)}
+                                        </ol>
+                                      )}
+                                      {cell.materiel?.filter((m) => m.trim()).length > 0 && (
+                                        <p className="text-xs text-[#7A7362]">Matériel : {cell.materiel.filter((m) => m.trim()).join(", ")}</p>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               ))}

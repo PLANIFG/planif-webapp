@@ -1156,12 +1156,21 @@ export default function App() {
     }
   };
 
-  const updateIdea = (id, patch) => setIdeas((cur) => cur.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  // Applique le même correctif à `ideas` et, si l'activité est déjà
+  // retenue, à `kept` aussi — sinon une modification faite après avoir
+  // cliqué "Garder" (ex. ajouter "cartes" au matériel) ne se répercute
+  // jamais sur la copie retenue, et les fonctionnalités automatiques
+  // (bingo, cartes) basées sur `kept` ne la voient donc jamais.
+  const applyToIdeaAndKept = (id, updater) => {
+    setIdeas((cur) => cur.map((i) => (i.id === id ? updater(i) : i)));
+    setKept((cur) => cur.map((i) => (i.id === id ? updater(i) : i)));
+  };
+  const updateIdea = (id, patch) => applyToIdeaAndKept(id, (i) => ({ ...i, ...patch }));
   const updateListField = (id, field, idx, val) =>
-    setIdeas((cur) => cur.map((i) => (i.id === id ? { ...i, [field]: i[field].map((v, vi) => (vi === idx ? val : v)) } : i)));
-  const addListItem = (id, field) => setIdeas((cur) => cur.map((i) => (i.id === id ? { ...i, [field]: [...i[field], ""] } : i)));
+    applyToIdeaAndKept(id, (i) => ({ ...i, [field]: i[field].map((v, vi) => (vi === idx ? val : v)) }));
+  const addListItem = (id, field) => applyToIdeaAndKept(id, (i) => ({ ...i, [field]: [...i[field], ""] }));
   const removeListItem = (id, field, idx) =>
-    setIdeas((cur) => cur.map((i) => (i.id === id ? { ...i, [field]: i[field].filter((_, vi) => vi !== idx) } : i)));
+    applyToIdeaAndKept(id, (i) => ({ ...i, [field]: i[field].filter((_, vi) => vi !== idx) }));
 
   const keepIdea = (id) => {
     const idea = ideas.find((i) => i.id === id);

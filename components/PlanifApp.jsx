@@ -3172,7 +3172,7 @@ function BibliothequeView({ onBack }) {
                                 placeholder="Matériel (un item par ligne)"
                                 className="w-full text-xs bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
                               />
-                            ) (
+                            ) : (
                               a.materiel?.length > 0 && (
                                 <p className="text-xs text-[#7A7362]">Matériel : {a.materiel.join(", ")}</p>
                               )

@@ -1153,6 +1153,18 @@ export default function App() {
     let rotationIdx = 0;
     return scheduleRows.map((row) => {
       if (row.type === "rotation") {
+        // Si l'éducatrice a tapé un texte manuellement dans une case (via
+        // "Horaire personnalisé" ou en complément d'un mode généré), ce
+        // texte a priorité sur le remplissage automatique par les activités
+        // retenues, groupe par groupe.
+        const hasManual = (row.labels || []).some((l) => l && l.trim());
+        if (hasManual) {
+          const cells = groups.map((_, gi) => {
+            const text = row.labels?.[gi];
+            return text && text.trim() ? { nom: text } : null;
+          });
+          return { ...row, cells };
+        }
         const cells = n === 0 ? groups.map(() => null) : groups.map((_, gi) => kept[(gi + rotationIdx) % n]);
         rotationIdx += 1;
         return { ...row, cells };
@@ -1802,7 +1814,21 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDr
           )}
 
           {row.type === "rotation" && (
-            <p className="text-sm text-[#B3A990] italic">Se remplit automatiquement avec les activités retenues.</p>
+            <div className="space-y-1.5">
+              <p className="text-xs text-[#B3A990] italic mb-1">
+                Laissez vide pour remplir automatiquement avec les activités retenues, ou tapez une activité par groupe pour remplacer manuellement.
+              </p>
+              {groups.map((g, gi) => (
+                <div key={gi} className="flex items-center gap-2">
+                  <span className="text-xs text-[#B3A990] w-24 shrink-0 truncate">{g}</span>
+                  <TextField
+                    value={row.labels?.[gi] || ""}
+                    onChange={(v) => ops.updateLabelAt(row.id, gi, v)}
+                    placeholder="Ex. Bricolage"
+                  />
+                </div>
+              ))}
+            </div>
           )}
 
           {row.type === "diner" && (

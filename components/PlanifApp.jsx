@@ -87,6 +87,7 @@ const DAY_TYPES = [
   { key: "pedagogique", label: "Journée pédagogique", build: fullDayRows },
   { key: "concertation", label: "Après-midi de concertation", build: concertationRows },
   { key: "mercredi", label: "Mercredi après-midi — maternelle", build: mercrediMaternelleRows },
+  { key: "libre", label: "Horaire personnalisé", build: () => [] },
 ];
 
 const DOMAINES = ["Physique et moteur", "Social", "Affectif", "Cognitif", "Langagier"];
@@ -984,7 +985,7 @@ export default function App() {
     setKept([]);
     setEditingId(null);
     setError("");
-    setTab("idees");
+    setTab(key === "libre" ? "horaire" : "idees");
     setTransitionEnabled(false);
     setTransitionData(null);
     setTransitionError("");

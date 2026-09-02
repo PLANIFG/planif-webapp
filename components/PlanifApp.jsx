@@ -2640,7 +2640,7 @@ ${fichesHtml.join("")}
   const fiches = [];
   jours.forEach((jourObj) => visiblePeriodes.forEach((periode) => {
     const c = getCell(jourObj.name, periode);
-    if (c.activite?.trim()) fiches.push({ key: jourObj.id + periode, jour: jourObj.name, periode, cell: c });
+    if (c.activite?.trim()) fiches.push({ key: weeklyCellKey(jourObj.name, periode), jour: jourObj.name, periode, cell: c });
   }));
 
   return (

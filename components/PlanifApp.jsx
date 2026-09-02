@@ -2108,6 +2108,8 @@ ${fichesHtml}
                     ...row,
                     cells: row.cells ? row.cells.map((c) => (c ? { nom: c.nom, lieu: c.lieu } : null)) : undefined,
                   })),
+                  transitionData: transitionEnabled ? transitionData : null,
+                  transitionImages: transitionEnabled ? transitionImages : [],
                 },
               });
             }
@@ -2893,6 +2895,8 @@ ${fichesHtml.join("")}
                       type: "semaine",
                       groupeNom, educatrice, semaine, theme, jours, cells,
                       periodes: visiblePeriodes,
+                      transitionData: transitionEnabled ? transitionData : null,
+                      transitionImages: transitionEnabled ? transitionImages : [],
                     },
                   });
                 }
@@ -3100,7 +3104,16 @@ function BibliothequeView({ onBack }) {
                         })}
                       </div>
                     )}
-                    {!keptList && !joursList && (
+                    {p.transitionData && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Fiches de transition</p>
+                        {p.transitionImages?.length > 0 && (
+                          <ColoringPrintPage formes={p.transitionData.formes} theme={p.theme} customImages={p.transitionImages} />
+                        )}
+                        <WordSearchPrintPage wordSearch={p.transitionData.wordSearch} theme={p.theme} />
+                      </div>
+                    )}
+                    {!keptList && !joursList && !p.transitionData && (
                       <p className="text-xs text-[#B3A990]">Aucun détail disponible pour cette planification.</p>
                     )}
                   </div>

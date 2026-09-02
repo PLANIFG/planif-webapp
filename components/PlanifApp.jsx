@@ -544,6 +544,40 @@ function CartesPrintPage({ nomActivite, theme, items }) {
   );
 }
 
+// ---------- Matériel détecté automatiquement (suggestions de collation) ----------
+// Repère si "collation" apparaît dans le nom OU le matériel d'une activité.
+function activiteNecessiteCollation(nom, materiel) {
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (norm(nom).includes("collation")) return true;
+  return (materiel || []).some((m) => norm(m).includes("collation"));
+}
+
+function buildCollationPrompt({ theme, nomActivite }) {
+  return `Tu prépares des suggestions de collation pour un service de garde en milieu scolaire.
+
+Activité ou moment : "${nomActivite}"
+Thème de la journée : "${theme || "non précisé"}"
+
+Propose exactement 3 idées de collations simples, saines et faciles à préparer pour un groupe d'enfants du primaire, en lien avec ce thème si possible (sinon des collations générales). Chaque idée en 2 à 5 mots (ex. "Pommes tranchées et fromage").
+
+Réponds UNIQUEMENT avec un tableau JSON valide de 3 chaînes, sans texte avant/après, format exact :
+["Idée 1", "Idée 2", "Idée 3"]`;
+}
+
+function CollationSuggestions({ idees }) {
+  if (!idees || idees.length < 3) return null;
+  return (
+    <div className="mt-2 p-3 rounded-lg border border-[#E3DACB] bg-white">
+      <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: COLORS.moss }}>Suggestions de collation</p>
+      <ul className="text-sm space-y-0.5">
+        {idees.slice(0, 3).map((idee, i) => (
+          <li key={i} className="flex gap-2"><span style={{ color: COLORS.marine }}>•</span>{idee}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function buildTransitionPrompt({ theme }) {
   return `Tu prépares des fiches d'activités de transition (à imprimer) pour des enfants en service de garde, sur le thème "${theme}".
 
@@ -1961,6 +1995,27 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kept, theme]);
 
+  // Même logique automatique pour les suggestions de collation, détectées
+  // via "collation" dans le nom ou le matériel d'une activité.
+  const [collationIdees, setCollationIdees] = useState({}); // { [activityId]: string[] }
+  const collationEnCours = useRef({});
+  useEffect(() => {
+    kept.forEach((activite) => {
+      if (!activiteNecessiteCollation(activite.nom, activite.materiel)) return;
+      if (collationIdees[activite.id] || collationEnCours.current[activite.id]) return;
+      collationEnCours.current[activite.id] = true;
+      askClaude(buildCollationPrompt({ theme, nomActivite: activite.nom }))
+        .then((idees) => {
+          if (Array.isArray(idees) && idees.length >= 3) {
+            setCollationIdees((cur) => ({ ...cur, [activite.id]: idees }));
+          }
+        })
+        .catch(() => {})
+        .finally(() => { collationEnCours.current[activite.id] = false; });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kept, theme]);
+
   const openPrintableInNewTab = () => {
     const rowsHtml = computedRows.map((row) => {
       if (row.type === "rotation") {
@@ -2016,6 +2071,10 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
         <tr>${cartesCells.slice(0, 4).join("")}</tr><tr>${cartesCells.slice(4, 8).join("")}</tr></table>
       </div>`;
       })() : "";
+      const idees = collationIdees[st.id];
+      const collationHtml = (activiteNecessiteCollation(st.nom, st.materiel) && idees && idees.length >= 3)
+        ? `<div style="margin-top:10px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Suggestions de collation</p><ul style="list-style:none;padding-left:0;margin:0;">${idees.slice(0, 3).map((i) => `<li style="margin-bottom:3px;">• ${escapeHtml(i)}</li>`).join("")}</ul></div>`
+        : "";
       return `<div style="page-break-before:always;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
@@ -2023,6 +2082,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList,
         ${st.amorce ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(st.amorce)}</p>` : ""}
         ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
         ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
+        ${collationHtml}
       </div>${bingoHtml}${cartesHtml}`;
     }).join("");
 
@@ -2197,6 +2257,9 @@ ${fichesHtml}
               <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26]"><span style={{ color: COLORS.marine }}>•</span>{m}</li>
             ))}
           </ul>
+          {activiteNecessiteCollation(st.nom, st.materiel) && (
+            <CollationSuggestions idees={collationIdees[st.id]} />
+          )}
         </div>
         {activiteNecessiteBingo(st.nom) && (
           <BingoPrintPage nomActivite={st.nom} theme={theme} mots={bingoMots[st.id]} />
@@ -2341,6 +2404,8 @@ function WeeklyGridTool() {
   const bingoEnCours = useRef({});
   const [cartesItemsWeek, setCartesItemsWeek] = useState({}); // { [jour__periode]: string[] }
   const cartesEnCoursWeek = useRef({});
+  const [collationIdeesWeek, setCollationIdeesWeek] = useState({}); // { [jour__periode]: string[] }
+  const collationEnCoursWeek = useRef({});
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -2454,6 +2519,28 @@ function WeeklyGridTool() {
           })
           .catch(() => {})
           .finally(() => { cartesEnCoursWeek.current[key] = false; });
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cells, theme, visiblePeriodes.join(","), jours.map((j) => j.name).join(",")]);
+
+  // Même logique automatique pour les suggestions de collation.
+  useEffect(() => {
+    jours.forEach((jourObj) => {
+      visiblePeriodes.forEach((periode) => {
+        const cell = getCell(jourObj.name, periode);
+        if (!activiteNecessiteCollation(cell.activite, cell.materiel)) return;
+        const key = weeklyCellKey(jourObj.name, periode);
+        if (collationIdeesWeek[key] || collationEnCoursWeek.current[key]) return;
+        collationEnCoursWeek.current[key] = true;
+        askClaude(buildCollationPrompt({ theme, nomActivite: cell.activite }))
+          .then((idees) => {
+            if (Array.isArray(idees) && idees.length >= 3) {
+              setCollationIdeesWeek((cur) => ({ ...cur, [key]: idees }));
+            }
+          })
+          .catch(() => {})
+          .finally(() => { collationEnCoursWeek.current[key] = false; });
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2576,6 +2663,10 @@ function WeeklyGridTool() {
       if (!c.activite?.trim()) return;
       const etapes = (c.description || "").split("\n").filter((l) => l.trim()).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
       const materiel = (c.materiel || []).filter((m) => m.trim()).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
+      const idees = collationIdeesWeek[weeklyCellKey(jourObj.name, periode)];
+      const collationHtml = (activiteNecessiteCollation(c.activite, c.materiel) && idees && idees.length >= 3)
+        ? `<div style="margin-top:10px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Suggestions de collation</p><ul style="list-style:none;padding-left:0;margin:0;">${idees.slice(0, 3).map((i) => `<li style="margin-bottom:3px;">• ${escapeHtml(i)}</li>`).join("")}</ul></div>`
+        : "";
       fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
@@ -2584,6 +2675,7 @@ function WeeklyGridTool() {
         ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
         ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
         ${c.remarques ? `<p style="color:#7A7362;font-style:italic;margin-top:12px;">${escapeHtml(c.remarques)}</p>` : ""}
+        ${collationHtml}
       </div>`);
       const motsBingo = bingoMots[weeklyCellKey(jourObj.name, periode)];
       if (activiteNecessiteBingo(c.activite) && motsBingo && motsBingo.length >= 24) {
@@ -3027,6 +3119,9 @@ ${fichesHtml.join("")}
                 </>
               )}
               {cell.remarques && <p className="text-sm text-[#7A7362] italic mt-4">{cell.remarques}</p>}
+              {activiteNecessiteCollation(cell.activite, cell.materiel) && (
+                <CollationSuggestions idees={collationIdeesWeek[key]} />
+              )}
             </div>
             {activiteNecessiteBingo(cell.activite) && (
               <BingoPrintPage nomActivite={cell.activite} theme={theme} mots={bingoMots[key]} />

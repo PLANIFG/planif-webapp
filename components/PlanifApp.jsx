@@ -1166,6 +1166,47 @@ export default function App() {
     setLieux(["Gymnase", "Cuisine", "Labo créatif"]);
   };
 
+  // Recharge une planification sauvegardée (Journée pédagogique/Concertation/
+  // Mercredi/Horaire personnalisé) dans l'éditeur complet, pour permettre de
+  // la retravailler en entier — pas seulement les petits ajustements de
+  // texte offerts directement dans la bibliothèque.
+  const resumeJourneeItem = (payload) => {
+    const key = payload.dayType || (payload.isMercredi ? "mercredi" : "pedagogique");
+    setDayType(key);
+    setTheme(payload.theme || "");
+    setDateLabel(payload.dateLabel || "");
+    setGroups(payload.groups?.length ? payload.groups : DEFAULT_GROUPS);
+    setKept(payload.kept || []);
+    setIdeas(payload.kept || []);
+    setScheduleRows(payload.scheduleRows?.length ? payload.scheduleRows : (payload.computedRows || []));
+    setActivitesParMercredi(payload.activitesParMercredi || 1);
+    if (payload.mercredis?.length) {
+      const dates = payload.mercredis.map((iso) => new Date(iso));
+      setMoisIndex(dates[0].getMonth());
+      setAnneeMois(dates[0].getFullYear());
+    }
+    setTransitionEnabled(!!payload.transitionData);
+    setTransitionData(payload.transitionData || null);
+    setTransitionImages(payload.transitionImages || []);
+    setEditingId(null);
+    setError("");
+    setShowBiblio(false);
+    setTab("horaire");
+  };
+
+  // Même principe pour la Planification hebdomadaire — cette section gère
+  // ses propres données en interne, donc on la force à se réinitialiser
+  // avec les données sauvegardées via une clé de remontage (React ne relit
+  // les valeurs initiales d'un composant qu'à son montage).
+  const [weeklyResumeData, setWeeklyResumeData] = useState(null);
+  const [weeklyResumeKey, setWeeklyResumeKey] = useState(0);
+  const resumeSemaineItem = (payload) => {
+    setWeeklyResumeData(payload);
+    setWeeklyResumeKey((k) => k + 1);
+    setDayType("semaine");
+    setShowBiblio(false);
+  };
+
   const now = new Date();
   const [moisIndex, setMoisIndex] = useState(now.getMonth());
   const [anneeMois, setAnneeMois] = useState(now.getFullYear());
@@ -1436,9 +1477,9 @@ export default function App() {
       </div>
 
       {showBiblio ? (
-        <BibliothequeView onBack={() => setShowBiblio(false)} />
+        <BibliothequeView onBack={() => setShowBiblio(false)} onResumeJournee={resumeJourneeItem} onResumeSemaine={resumeSemaineItem} />
       ) : dayType === "semaine" ? (
-        <WeeklyGridTool />
+        <WeeklyGridTool key={weeklyResumeKey} initialData={weeklyResumeData} />
       ) : (
         <>
           {tab === "idees" && (
@@ -1480,7 +1521,7 @@ export default function App() {
           {tab === "apercu" && (
             <PrintView
               theme={theme} dateLabel={dateLabel} groups={groups}
-              computedRows={computedRows} kept={kept}
+              computedRows={computedRows} scheduleRows={scheduleRows} kept={kept}
               materialList={materialList}
               isMercredi={isMercredi} mercredis={mercredis} activitesParMercredi={activitesParMercredi}
               transitionEnabled={transitionEnabled} transitionData={transitionData} transitionImages={transitionImages}
@@ -2050,7 +2091,7 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDr
 }
 
 // ================= APERÇU / IMPRESSION =================
-function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack }) {
+function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack }) {
   const [savingBiblio, setSavingBiblio] = useState(false);
   const [biblioSaved, setBiblioSaved] = useState(false);
 
@@ -2463,9 +2504,11 @@ ${fichesHtml}
                 title: theme || "Sans titre",
                 payload: {
                   type: "journee",
+                  dayType,
                   theme, dateLabel, groups, kept, materialList,
                   isMercredi, activitesParMercredi,
                   mercredis: (mercredis || []).map((d) => d.toISOString()),
+                  scheduleRows,
                   computedRows: computedRows.map((row) => ({
                     ...row,
                     cells: row.cells ? row.cells.map((c) => (c ? { nom: c.nom, lieu: c.lieu } : null)) : undefined,
@@ -2564,17 +2607,21 @@ Réponds UNIQUEMENT avec un objet JSON valide, format exact :
 Les valeurs possibles pour "domaines" sont EXACTEMENT : "Physique et moteur", "Social", "Affectif", "Cognitif", "Langagier". Choisis 1 à 3 domaines pertinents. "description" est le déroulement en 2 à 4 étapes courtes.`;
 }
 
-function WeeklyGridTool() {
+function WeeklyGridTool({ initialData }) {
   const [wtab, setWtab] = useState("configurer"); // configurer | apercu
   useEffect(() => { window.scrollTo(0, 0); }, [wtab]);
 
-  const [educatrice, setEducatrice] = useState("");
-  const [semaine, setSemaine] = useState("");
-  const [groupeNom, setGroupeNom] = useState("");
+  const [educatrice, setEducatrice] = useState(initialData?.educatrice || "");
+  const [semaine, setSemaine] = useState(initialData?.semaine || "");
+  const [groupeNom, setGroupeNom] = useState(initialData?.groupeNom || "");
   const [wAges, setWAges] = useState(["4-6 ans", "7-9 ans", "10-12 ans"]);
-  const [theme, setTheme] = useState("");
+  const [theme, setTheme] = useState(initialData?.theme || "");
 
-  const [jours, setJours] = useState(() => ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"].map((name) => ({ id: `jour-${name.toLowerCase()}`, name, lieu: "" })));
+  const [jours, setJours] = useState(() =>
+    initialData?.jours?.length
+      ? initialData.jours
+      : ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"].map((name) => ({ id: `jour-${name.toLowerCase()}`, name, lieu: "" }))
+  );
   const [savingLieux, setSavingLieux] = useState(false);
   const [lieuxSaved, setLieuxSaved] = useState(false);
   const [savingBiblio, setSavingBiblio] = useState(false);
@@ -2603,10 +2650,18 @@ function WeeklyGridTool() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [periodes, setPeriodes] = useState(WEEKLY_DEFAULT_PERIODES);
-  const [selectedPeriodes, setSelectedPeriodes] = useState(WEEKLY_DEFAULT_PERIODES);
+  const [periodes, setPeriodes] = useState(initialData?.periodes?.length ? initialData.periodes : WEEKLY_DEFAULT_PERIODES);
+  const [selectedPeriodes, setSelectedPeriodes] = useState(initialData?.periodes?.length ? initialData.periodes : WEEKLY_DEFAULT_PERIODES);
   const visiblePeriodes = periodes.filter((p) => selectedPeriodes.includes(p));
-  const [cells, setCells] = useState({});
+  const [cells, setCells] = useState(initialData?.cells || {});
+  useEffect(() => {
+    if (initialData?.transitionData) {
+      setTransitionEnabled(true);
+      setTransitionData(initialData.transitionData);
+      setTransitionImages(initialData.transitionImages || []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [loadingWeek, setLoadingWeek] = useState(false);
   const [loadingCell, setLoadingCell] = useState(null);
@@ -3432,7 +3487,7 @@ ${fichesHtml.join("")}
 }
 
 // ================= BIBLIOTHÈQUE (activités sauvegardées) =================
-function BibliothequeView({ onBack }) {
+function BibliothequeView({ onBack, onResumeJournee, onResumeSemaine }) {
   const [libraryName, setLibraryName] = useState("Ma bibliothèque");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3541,6 +3596,19 @@ function BibliothequeView({ onBack }) {
                   {isOpen && !isEditing && (
                     <button onClick={() => startEdit(item)} className="text-xs font-semibold text-[#7C9070] flex items-center gap-1">
                       <Pencil size={11} /> Modifier
+                    </button>
+                  )}
+                  {!isEditing && (
+                    <button
+                      onClick={() => {
+                        const isSemaine = p.type === "semaine" || Array.isArray(p.jours);
+                        if (isSemaine) onResumeSemaine(p);
+                        else onResumeJournee(p);
+                      }}
+                      className="text-xs font-semibold text-[#7A7362] flex items-center gap-1"
+                      title="Recharger cette planification dans l'éditeur complet pour la retravailler"
+                    >
+                      <RefreshCw size={11} /> Reprendre
                     </button>
                   )}
                   {isOpen && isEditing && (

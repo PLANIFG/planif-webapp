@@ -1467,6 +1467,7 @@ export default function App() {
           {tab === "horaire" && (
             <HoraireView
               dateLabel={dateLabel} setDateLabel={setDateLabel}
+              theme={theme} setTheme={setTheme}
               groups={groups} addGroup={addGroup} removeGroup={removeGroup} renameGroup={renameGroup}
               scheduleRows={scheduleRows} scheduleOps={scheduleOps}
               kept={kept}
@@ -1483,6 +1484,7 @@ export default function App() {
               materialList={materialList}
               isMercredi={isMercredi} mercredis={mercredis} activitesParMercredi={activitesParMercredi}
               transitionEnabled={transitionEnabled} transitionData={transitionData} transitionImages={transitionImages}
+              dayType={dayType}
               onBack={() => setTab("horaire")}
             />
           )}
@@ -1834,7 +1836,7 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
 
 // ================= HORAIRE TAB =================
 function HoraireView({
-  dateLabel, setDateLabel, groups, addGroup, removeGroup, renameGroup,
+  dateLabel, setDateLabel, theme, setTheme, groups, addGroup, removeGroup, renameGroup,
   scheduleRows, scheduleOps, kept, dayType, onBack, onContinue,
 }) {
   // Glisser-déposer compatible souris ET doigt (événements Pointer, natifs,
@@ -1876,6 +1878,12 @@ function HoraireView({
       </div>
 
       <SectionCard>
+        {dayType === "libre" && (
+          <>
+            <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide">Thème de la journée</label>
+            <div className="mt-1 max-w-sm mb-4"><TextField value={theme} onChange={setTheme} placeholder="Ex. Éveil de la nature" /></div>
+          </>
+        )}
         <label className="text-xs font-semibold text-[#7A7362] uppercase tracking-wide flex items-center gap-1.5"><CalendarDays size={13} /> Date ou repère (optionnel)</label>
         <div className="mt-1 max-w-xs"><TextField value={dateLabel} onChange={setDateLabel} placeholder="Ex. 18 mai 2026" /></div>
       </SectionCard>
@@ -2042,7 +2050,7 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDr
 }
 
 // ================= APERÇU / IMPRESSION =================
-function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, onBack }) {
+function PrintView({ theme, dateLabel, groups, computedRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack }) {
   const [savingBiblio, setSavingBiblio] = useState(false);
   const [biblioSaved, setBiblioSaved] = useState(false);
 
@@ -2471,7 +2479,7 @@ ${fichesHtml}
             setBiblioSaved(true);
             setTimeout(() => setBiblioSaved(false), 2000);
           }}
-          disabled={savingBiblio || kept.length === 0}
+          disabled={savingBiblio || (dayType !== "libre" && kept.length === 0)}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 disabled:opacity-50"
           style={{ color: COLORS.moss, borderColor: COLORS.moss }}
         >

@@ -5,6 +5,20 @@ import { getGenerationLimit } from "../../../lib/generationLimits";
 // Stripe envoie ici automatiquement les événements (paiement réussi,
 // annulation, échec de carte, etc.) — c'est ce qui garde Supabase à jour
 // sans que personne n'ait à intervenir manuellement.
+
+// Depuis la version "Basil" de l'API Stripe (31 mars 2025), les champs
+// current_period_start/current_period_end n'existent plus directement sur
+// l'objet Subscription — ils sont maintenant sur chaque "item" de
+// l'abonnement (sub.items.data[0]). On lit donc à partir de là, avec un
+// repli sur l'ancien emplacement au cas où le compte serait encore sur une
+// version d'API plus ancienne.
+function getPeriodBounds(sub) {
+  const item = sub.items?.data?.[0];
+  const start = item?.current_period_start ?? sub.current_period_start;
+  const end = item?.current_period_end ?? sub.current_period_end;
+  return { start, end };
+}
+
 export async function POST(request) {
   const sig = request.headers.get("stripe-signature");
   const rawBody = await request.text();
@@ -49,17 +63,23 @@ export async function POST(request) {
         else if (sub.status === "trialing") status = "trialing";
         else if (sub.status === "past_due") status = "past_due";
         if (userId) {
-          const newPeriodEnd = new Date(sub.current_period_end * 1000).toISOString();
-          const newPeriodStart = new Date(sub.current_period_start * 1000).toISOString();
-          // On vérifie si on entre dans un NOUVEAU cycle de facturation avant
-          // de remettre le compteur de générations à 0 — sinon un événement
-          // "updated" sans changement de cycle (ex. mise à jour de carte)
-          // effacerait injustement les générations déjà utilisées ce mois-ci.
+          const { start: periodStartRaw, end: periodEndRaw } = getPeriodBounds(sub);
+          // Si Stripe ne fournit ni l'un ni l'autre emplacement (cas limite),
+          // on garde les anciennes valeurs plutôt que de planter ou d'écrire
+          // une date invalide.
           const { data: existing } = await db
             .from("subscriptions")
             .select("period_end")
             .eq("user_id", userId)
-            .single();
+            .maybeSingle();
+
+          const newPeriodEnd = periodEndRaw ? new Date(periodEndRaw * 1000).toISOString() : existing?.period_end || null;
+          const newPeriodStart = periodStartRaw ? new Date(periodStartRaw * 1000).toISOString() : null;
+
+          // On vérifie si on entre dans un NOUVEAU cycle de facturation avant
+          // de remettre le compteur de générations à 0 — sinon un événement
+          // "updated" sans changement de cycle (ex. mise à jour de carte)
+          // effacerait injustement les générations déjà utilisées ce mois-ci.
           const isNewCycle = !existing || existing.period_end !== newPeriodEnd;
           const updatePayload = {
             user_id: userId,

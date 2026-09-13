@@ -28,9 +28,23 @@ const MATERNELLE_AGES = ["4 ans", "5 ans"];
 // When all three age groups are selected together, the activities should
 // work as ONE shared multi-age activity (not something tailored to a
 // single group) — this line is inserted into the prompt in that case.
-function agesInstruction(ages) {
+// Plusieurs façons différentes d'organiser une activité multi-âge — sans
+// cette variété, l'IA retombait presque toujours sur la même structure
+// ("équipe avec une tâche par âge"), ce qui devenait répétitif d'une
+// activité à l'autre.
+const MULTIAGE_APPROACHES = [
+  "une activité d'équipe où chaque groupe d'âge a un rôle ou une tâche adaptée à sa capacité",
+  "une activité à niveaux de difficulté différents selon l'âge, mais avec un seul objectif commun pour tout le groupe",
+  "un jeu coopératif où les plus grands aident ou encadrent les plus petits, sans rôles fixes assignés d'avance",
+  "des ateliers ou stations parallèles adaptés à chaque âge, réunis autour d'un même thème central",
+  "une activité où tout le monde fait la même tâche en même temps, mais avec des attentes différentes selon l'âge (ex. quantité, précision, durée, complexité)",
+  "un défi ou une compétition amicale entre équipes mixtes (tous âges dans chaque équipe), sans distinction de rôle par âge",
+];
+
+function agesInstruction(ages, approchIndex = 0) {
   if (ages && ages.length === AGES.length && AGES.every((a) => ages.includes(a))) {
-    return "\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — le groupe est donc MULTI-ÂGE (4-12 ans réunis). Conçois des activités qui fonctionnent bien pour toutes ces tranches d'âge EN MÊME TEMPS (rôles ou niveaux de difficulté adaptables au sein d'une même activité), pas des activités pensées pour un seul groupe d'âge à la fois.\n";
+    const approche = MULTIAGE_APPROACHES[approchIndex % MULTIAGE_APPROACHES.length];
+    return `\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — le groupe est donc MULTI-ÂGE (4-12 ans réunis). Pour CETTE activité précisément, organise-la sous la forme suivante : ${approche}. Évite les autres structures multi-âge possibles pour cette activité — varie l'approche d'une activité à l'autre.\n`;
   }
   return "";
 }
@@ -951,13 +965,13 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, sans b
 ]`;
 }
 
-function buildSinglePrompt({ theme, ages, lieux, avoidNames, isMercredi, lieuAssigne }) {
+function buildSinglePrompt({ theme, ages, lieux, avoidNames, isMercredi, lieuAssigne, approcheIndex }) {
   return `Tu conçois des activités pour des journées pédagogiques en milieu scolaire (élèves du primaire).
 
 Thème : "${theme}"
 Groupes d'âge : ${ages.length ? ages.join(", ") : "4-12 ans"}
 ${lieuAssigne ? `Lieu à utiliser pour CETTE activité : "${lieuAssigne}" — n'utilise aucun autre lieu, l'activité doit être pensée spécifiquement pour cet endroit.` : `Lieux disponibles : ${lieux.length ? lieux.join(", ") : "à déterminer"}`}
-${agesInstruction(ages)}
+${agesInstruction(ages, approcheIndex)}
 Propose UNE nouvelle idée d'activité, différente de celles-ci : ${avoidNames.join(", ") || "aucune"}.
 IMPORTANT : ${isMercredi ? "l'activité doit durer 30 MINUTES MAXIMUM (c'est le temps alloué par bloc de rotation)." : "l'activité doit durer 60 minutes MAXIMUM (idéalement 30 à 60 minutes)."}
 Écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité de façon vivante.
@@ -1282,7 +1296,7 @@ export default function App() {
       for (let i = 0; i < effectiveCount; i++) {
         try {
           const lieuAssigne = lieux.length > 0 ? lieux[i % lieux.length] : undefined;
-          const raw = await askClaude(buildSinglePrompt({ theme, ages, lieux, avoidNames: names, isMercredi, lieuAssigne }));
+          const raw = await askClaude(buildSinglePrompt({ theme, ages, lieux, avoidNames: names, isMercredi, lieuAssigne, approcheIndex: i }));
           results.push({ id: nextId(), ...raw });
           names.push(raw.nom);
           setIdeas([...results]); // affiche les idées au fur et à mesure, pas juste à la toute fin
@@ -1312,7 +1326,7 @@ export default function App() {
     setError("");
     try {
       const avoidNames = ideas.map((i) => i.nom);
-      const raw = await askClaude(buildSinglePrompt({ theme, ages, lieux, avoidNames, isMercredi }));
+      const raw = await askClaude(buildSinglePrompt({ theme, ages, lieux, avoidNames, isMercredi, approcheIndex: Math.floor(Math.random() * 6) }));
       setIdeas((cur) => cur.map((i) => (i.id === id ? { id, ...raw } : i)));
     } catch (e) {
       setError(friendlyGenerationError(e, "La régénération a échoué"));
@@ -2552,12 +2566,16 @@ const weeklyCellKey = (jour, periode) => `${jour}__${periode}`;
 const weeklyEmptyCell = () => ({ activite: "", local: "", domaines: [], remarques: "", description: "", materiel: [], amorce: "", duree: "", resume: "" });
 
 function weeklyBuildWeekPrompt({ theme, ages, cellsToFill }) {
+  const isMultiAge = ages && ages.length === AGES.length && AGES.every((a) => ages.includes(a));
+  const multiAgeInstruction = isMultiAge
+    ? `\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — chaque activité est donc MULTI-ÂGE (4-12 ans réunis). Pour chaque case, choisis UNE approche différente parmi celles-ci (ne répète pas la même approche à deux cases de suite) :\n${MULTIAGE_APPROACHES.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n`
+    : "";
   return `Tu conçois des activités pour la planification hebdomadaire d'un service de garde en milieu scolaire.
 
 Thème du mois : "${theme}"
 Groupes d'âge visés : ${ages.length ? ages.join(", ") : "4-12 ans, tous groupes"}
 IMPORTANT : chaque activité doit se réaliser en 30 minutes maximum. N'excède jamais 30 minutes.
-${agesInstruction(ages)}
+${multiAgeInstruction}
 Pour chaque case suivante (jour + période), propose UNE activité simple et courte, adaptée aux groupes d'âge visés et réalisable en service de garde. Si un lieu est déjà indiqué pour la case, utilise-le ; sinon, choisis un lieu approprié.
 Pour chaque activité, écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité.
 Pour chaque activité, écris aussi un court résumé (une seule phrase, environ 10-15 mots) décrivant simplement en quoi consiste l'activité, pour un aperçu rapide.
@@ -2582,7 +2600,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, format
 Les valeurs possibles pour "domaines" sont EXACTEMENT : "Physique et moteur", "Social", "Affectif", "Cognitif", "Langagier". Choisis 1 à 3 domaines pertinents par activité. "description" est le déroulement en 2 à 4 étapes courtes.`;
 }
 
-function weeklyBuildSingleCellPrompt({ theme, ages, jour, periode, lieu, avoid }) {
+function weeklyBuildSingleCellPrompt({ theme, ages, jour, periode, lieu, avoid, approcheIndex }) {
   return `Tu conçois une activité pour la planification hebdomadaire d'un service de garde en milieu scolaire.
 
 Thème du mois : "${theme}"
@@ -2591,7 +2609,7 @@ Jour : ${jour}, période : ${periode}
 Lieu (si fourni, à respecter) : ${lieu || "au choix"}
 Durée : 30 minutes maximum. N'excède jamais 30 minutes.
 Évite de répéter : ${avoid || "aucune activité à éviter"}
-${agesInstruction(ages)}
+${agesInstruction(ages, approcheIndex)}
 Réponds UNIQUEMENT avec un objet JSON valide, format exact :
 {
   "activite": "Nom court",
@@ -2890,7 +2908,7 @@ function WeeklyGridTool({ initialData }) {
     setLoadingCell(key);
     try {
       const avoid = Object.values(cells).map((c) => c.activite).filter(Boolean).join(", ");
-      const raw = await askClaude(weeklyBuildSingleCellPrompt({ theme, ages: wAges, jour: jourName, periode, lieu: jourLieu, avoid }));
+      const raw = await askClaude(weeklyBuildSingleCellPrompt({ theme, ages: wAges, jour: jourName, periode, lieu: jourLieu, avoid, approcheIndex: Math.floor(Math.random() * 6) }));
       setCell(jourName, periode, {
         activite: raw.activite || "",
         local: raw.local || "",

@@ -2232,7 +2232,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       monthlyHtml = `<p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Horaire mensuelle</p>
 <h1 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(theme) || "Thème du mois"}</h1>
 <table style="margin-bottom:24px;"><thead><tr><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Date</th><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Activité</th></tr></thead><tbody>${monthlyRows}</tbody></table>
-<div style="page-break-before:always;"></div>`;
+<div style="page-break-before:always;page-break-inside:avoid;"></div>`;
     }
 
     const fichesHtml = kept.map((st) => {
@@ -2242,7 +2242,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const bingoHtml = (activiteNecessiteBingo(st.nom) && mots && mots.length >= 24) ? (() => {
         const grille = [...mots.slice(0, 12), "GRATUIT", ...mots.slice(12, 24)];
         const cases = grille.map((mot) => `<td style="border:1px solid #E3DACB;text-align:center;padding:10px 4px;font-size:11px;font-weight:600;${mot === "GRATUIT" ? "background:#E4EEE4;color:#54634A;font-weight:700;" : ""}">${escapeHtml(mot)}</td>`).join("");
-        return `<div style="page-break-before:always;padding:24px 0;">
+        return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — bingo</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <table style="max-width:480px;border-collapse:collapse;margin-top:12px;"><tr>${["B", "I", "N", "G", "O"].map((l) => `<td style="text-align:center;background:#7C9070;color:white;font-weight:700;padding:8px;">${l}</td>`).join("")}</tr>
@@ -2252,7 +2252,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const itemsCartes = cartesItems[st.id];
       const cartesHtml = (activiteNecessiteCartes(st.materiel) && itemsCartes && itemsCartes.length >= 8) ? (() => {
         const cartesCells = itemsCartes.slice(0, 8).map((mot) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:22px 4px;font-size:11px;font-weight:700;color:#54634A;">${escapeHtml(mot)}</td>`);
-        return `<div style="page-break-before:always;padding:24px 0;">
+        return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — cartes à découper</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <table style="border-collapse:separate;border-spacing:8px;width:100%;margin-top:12px;">
@@ -2267,7 +2267,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const cartesIllustreesHtml = (activiteNecessiteCartesIllustrees(st.materiel) && formesIllustrees && formesIllustrees.length >= 8) ? (() => {
         const noms = formesIllustrees.slice(0, 8).map((f) => f.charAt(0).toUpperCase() + f.slice(1));
         const cells = noms.map((n) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:22px 4px;font-size:11px;font-weight:700;color:#54634A;">${escapeHtml(n)}</td>`);
-        return `<div style="page-break-before:always;padding:24px 0;">
+        return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — cartes illustrées</p>
         <h2 style="color:#54634A;margin:4px 0 8px;">${escapeHtml(st.nom)}</h2>
         <p style="color:#B3A990;font-size:11px;font-style:italic;margin-bottom:12px;">Voir l'aperçu dans l'app pour les illustrations — noms des formes ci-dessous.</p>
@@ -2279,7 +2279,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const quizHtml = (activiteNecessiteQuiz(st.nom, st.materiel) && questionsQuiz && questionsQuiz.length >= 10) ? (() => {
         const items = questionsQuiz.slice(0, 10).map((q, i) => `<li style="margin-bottom:10px;display:flex;justify-content:space-between;gap:12px;"><span>${i + 1}. ${escapeHtml(q.question)}</span><span style="color:#B3A990;font-size:11px;white-space:nowrap;">○ Vrai &nbsp; ○ Faux</span></li>`).join("");
         const corrige = questionsQuiz.slice(0, 10).map((q, i) => `${i + 1}. ${q.reponse ? "Vrai" : "Faux"}`).join("  ·  ");
-        return `<div style="page-break-before:always;padding:24px 0;">
+        return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — quiz vrai ou faux</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <ol style="padding-left:0;list-style:none;margin-top:16px;">${items}</ol>
@@ -2289,7 +2289,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
         </div>
       </div>`;
       })() : "";
-      return `<div style="page-break-before:always;padding:24px 0;">
+      return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <p style="color:#7A7362;">${escapeHtml(st.age)} · ${escapeHtml(st.duree)}</p>
@@ -2951,7 +2951,7 @@ function WeeklyGridTool({ initialData }) {
       const collationHtml = (activiteNecessiteCollation(c.activite, c.materiel) && idees && idees.length >= 3)
         ? `<div style="margin-top:10px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Suggestions de collation</p><ul style="list-style:none;padding-left:0;margin:0;">${idees.slice(0, 3).map((i) => `<li style="margin-bottom:3px;">• ${escapeHtml(i)}</li>`).join("")}</ul></div>`
         : "";
-      fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
+      fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         ${c.domaines.length ? `<p style="color:#7A7362;">${c.domaines.map(escapeHtml).join(" · ")}</p>` : ""}
@@ -2965,7 +2965,7 @@ function WeeklyGridTool({ initialData }) {
       if (activiteNecessiteBingo(c.activite) && motsBingo && motsBingo.length >= 24) {
         const grille = [...motsBingo.slice(0, 12), "GRATUIT", ...motsBingo.slice(12, 24)];
         const cases = grille.map((mot) => `<td style="border:1px solid #E3DACB;text-align:center;padding:10px 4px;font-size:11px;font-weight:600;${mot === "GRATUIT" ? "background:#E4EEE4;color:#54634A;font-weight:700;" : ""}">${escapeHtml(mot)}</td>`);
-        fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
+        fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — bingo</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         <table style="max-width:480px;border-collapse:collapse;margin-top:12px;"><tr>${["B", "I", "N", "G", "O"].map((l) => `<td style="text-align:center;background:#7C9070;color:white;font-weight:700;padding:8px;">${l}</td>`).join("")}</tr>
@@ -2975,7 +2975,7 @@ function WeeklyGridTool({ initialData }) {
       const cartesItemsC = cartesItemsWeek[weeklyCellKey(jourObj.name, periode)];
       if (activiteNecessiteCartes(c.materiel) && cartesItemsC && cartesItemsC.length >= 8) {
         const cartesCells = cartesItemsC.slice(0, 8).map((mot) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:22px 4px;font-size:11px;font-weight:700;color:#54634A;">${escapeHtml(mot)}</td>`);
-        fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
+        fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — cartes à découper</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         <table style="border-collapse:separate;border-spacing:8px;width:100%;margin-top:12px;">
@@ -2986,7 +2986,7 @@ function WeeklyGridTool({ initialData }) {
       if (activiteNecessiteCartesIllustrees(c.materiel) && formesIllustreesC && formesIllustreesC.length >= 8) {
         const nomsC = formesIllustreesC.slice(0, 8).map((f) => f.charAt(0).toUpperCase() + f.slice(1));
         const cellsIllustrees = nomsC.map((n) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:22px 4px;font-size:11px;font-weight:700;color:#54634A;">${escapeHtml(n)}</td>`);
-        fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
+        fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — cartes illustrées</p>
         <h2 style="color:#54634A;margin:4px 0 8px;">${escapeHtml(c.activite)}</h2>
         <p style="color:#B3A990;font-size:11px;font-style:italic;margin-bottom:12px;">Voir l'aperçu dans l'app pour les illustrations — noms des formes ci-dessous.</p>
@@ -2998,7 +2998,7 @@ function WeeklyGridTool({ initialData }) {
       if (activiteNecessiteQuiz(c.activite, c.materiel) && questionsQuizC && questionsQuizC.length >= 10) {
         const itemsQuiz = questionsQuizC.slice(0, 10).map((q, i) => `<li style="margin-bottom:10px;display:flex;justify-content:space-between;gap:12px;"><span>${i + 1}. ${escapeHtml(q.question)}</span><span style="color:#B3A990;font-size:11px;white-space:nowrap;">○ Vrai &nbsp; ○ Faux</span></li>`).join("");
         const corrigeQuiz = questionsQuizC.slice(0, 10).map((q, i) => `${i + 1}. ${q.reponse ? "Vrai" : "Faux"}`).join("  ·  ");
-        fichesHtml.push(`<div style="page-break-before:always;padding:24px 0;">
+        fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — quiz vrai ou faux</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         <ol style="padding-left:0;list-style:none;margin-top:16px;">${itemsQuiz}</ol>

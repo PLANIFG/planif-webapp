@@ -552,16 +552,51 @@ Réponds UNIQUEMENT avec un tableau JSON valide de 8 chaînes, sans texte avant/
 ["Mot1", "Mot2", "Mot3", "Mot4", "Mot5", "Mot6", "Mot7", "Mot8"]`;
 }
 
-function buildCartesIllustreesPrompt({ theme, nomActivite }) {
+// Demande à Claude de déterminer LUI-MÊME combien d'images sont
+// nécessaires pour cette activité (selon ce que le matériel décrit),
+// plutôt qu'un nombre fixe — avec un plafond de sécurité (voir
+// CARTES_ILLUSTREES_MAX) pour éviter un coût imprévu si l'IA en propose
+// trop. Chaque description sera ensuite envoyée séparément à l'API
+// d'images (OpenAI) pour produire une vraie illustration.
+const CARTES_ILLUSTREES_MAX = 8;
+function buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite, itemMateriel }) {
   return `Tu prépares des cartes à découper ILLUSTRÉES pour une activité de service de garde en milieu scolaire.
 
 Activité : "${nomActivite}"
 Thème de la journée : "${theme || "non précisé"}"
+Item de matériel demandé : "${itemMateriel || "cartes illustrées"}"
 
-Choisis exactement 8 formes DANS CETTE LISTE EXACTE (aucune autre valeur permise), en choisissant celles qui conviennent le mieux au thème et à l'activité — répète des formes si nécessaire pour en obtenir 8 : ${COLORING_SHAPE_NAMES.join(", ")}.
+Détermine combien de cartes différentes sont réellement nécessaires pour cette activité (si un nombre est mentionné dans l'item de matériel, respecte-le ; sinon choisis un nombre raisonnable, généralement entre 4 et ${CARTES_ILLUSTREES_MAX}). Ne dépasse JAMAIS ${CARTES_ILLUSTREES_MAX} cartes.
 
-Réponds UNIQUEMENT avec un tableau JSON valide de 8 chaînes tirées de cette liste, sans texte avant/après, format exact :
-["forme1", "forme2", "forme3", "forme4", "forme5", "forme6", "forme7", "forme8"]`;
+Pour chaque carte, écris une courte description visuelle (en français, une phrase simple) décrivant précisément ce qui doit être illustré, adaptée à un dessin simple et coloré pour enfants (ex. "Une pomme rouge brillante, style dessin plat, fond blanc").
+
+Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format exact :
+{
+  "nombre": 6,
+  "cartes": [
+    { "nom": "Pomme", "description": "Une pomme rouge brillante, style dessin plat, fond blanc" }
+  ]
+}
+(Le tableau "cartes" doit contenir exactement "nombre" éléments, et "nombre" ne doit jamais dépasser ${CARTES_ILLUSTREES_MAX}.)`;
+}
+
+// Appelle la route backend qui génère une vraie image via OpenAI. Retourne
+// une image encodée en base64 (data:image/png;base64,...), prête à
+// afficher directement — ou null en cas d'échec (sans faire planter tout
+// le lot pour autant).
+async function generateOpenAIImage(prompt) {
+  try {
+    const res = await fetch("/api/generate-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+    const data = await res.json();
+    if (!res.ok) return null;
+    return data.image || null;
+  } catch (e) {
+    return null;
+  }
 }
 
 function CartesPrintPage({ nomActivite, theme, items }) {
@@ -582,19 +617,20 @@ function CartesPrintPage({ nomActivite, theme, items }) {
   );
 }
 
-function CartesIllustreesPrintPage({ nomActivite, theme, formes }) {
-  if (!formes || formes.length < 8) return null;
-  const noms = formes.slice(0, 8).map((f) => f.charAt(0).toUpperCase() + f.slice(1));
+function CartesIllustreesPrintPage({ nomActivite, theme, cartes }) {
+  if (!cartes || cartes.length === 0) return null;
+  const pretes = cartes.filter((c) => c.image);
+  if (pretes.length === 0) return null;
   return (
     <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
       <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Matériel — cartes illustrées</p>
       <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{nomActivite}</h2>
       <div className="leaf-underline w-16 mt-3 mb-6" />
       <div className="grid grid-cols-4 gap-4">
-        {formes.slice(0, 8).map((forme, i) => (
+        {pretes.map((carte, i) => (
           <div key={i} className="border border-dashed border-[#DCD3C2] rounded-xl py-3 px-2 text-center">
-            <svg viewBox="0 0 200 200" className="w-full h-auto max-w-[90px] mx-auto">{COLORING_SHAPES[forme]}</svg>
-            <div className="mt-1" style={{ fontSize: 11.5, fontWeight: 700, color: COLORS.mossDark }}>{noms[i]}</div>
+            <img src={carte.image} alt={carte.nom} className="w-full h-auto rounded-lg mx-auto" style={{ maxWidth: 110 }} />
+            <div className="mt-1" style={{ fontSize: 11.5, fontWeight: 700, color: COLORS.mossDark }}>{carte.nom}</div>
           </div>
         ))}
       </div>
@@ -2244,25 +2280,38 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kept, theme]);
 
-  // Même logique automatique pour les cartes ILLUSTRÉES (formes existantes),
-  // détectées quand "cartes" ET "illustré" apparaissent dans le matériel.
-  const [cartesFormes, setCartesFormes] = useState({}); // { [activityId]: string[] }
-  const cartesFormesEnCours = useRef({});
+  // Même logique automatique pour les cartes ILLUSTRÉES, mais avec de
+  // vraies images générées par IA (OpenAI) — le nombre de cartes est
+  // déterminé par Claude selon les besoins de l'activité, puis chaque
+  // carte est illustrée séparément. Génération séquentielle (une image à
+  // la fois) plutôt qu'en parallèle, pour rester raisonnable côté coût
+  // et débit de l'API.
+  const [cartesImages, setCartesImages] = useState({}); // { [activityId]: {nom, description, image}[] }
+  const cartesImagesEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
       if (!activiteNecessiteCartesIllustrees(activite.materiel)) return;
-      if (cartesFormes[activite.id] || cartesFormesEnCours.current[activite.id]) return;
-      cartesFormesEnCours.current[activite.id] = true;
-      askClaude(buildCartesIllustreesPrompt({ theme, nomActivite: activite.nom }))
-        .then((raw) => {
-          const formes = normalizeFormes(raw);
-          if (formes.length > 0) {
-            const huit = Array.from({ length: 8 }, (_, i) => formes[i % formes.length]);
-            setCartesFormes((cur) => ({ ...cur, [activite.id]: huit }));
+      if (cartesImages[activite.id] || cartesImagesEnCours.current[activite.id]) return;
+      cartesImagesEnCours.current[activite.id] = true;
+      const itemMateriel = (activite.materiel || []).find((m) => activiteNecessiteCartesIllustrees([m]));
+      (async () => {
+        try {
+          const raw = await askClaude(buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite: activite.nom, itemMateriel }));
+          const liste = Array.isArray(raw?.cartes) ? raw.cartes.slice(0, CARTES_ILLUSTREES_MAX) : [];
+          if (liste.length === 0) return;
+          const resultats = [];
+          for (const carte of liste) {
+            const image = await generateOpenAIImage(carte.description);
+            resultats.push({ nom: carte.nom, description: carte.description, image });
+            // Affiche les cartes au fur et à mesure qu'elles sont prêtes.
+            setCartesImages((cur) => ({ ...cur, [activite.id]: [...resultats] }));
           }
-        })
-        .catch(() => {})
-        .finally(() => { cartesFormesEnCours.current[activite.id] = false; });
+        } catch (e) {
+          // échec silencieux — la page ne s'affichera simplement pas
+        } finally {
+          cartesImagesEnCours.current[activite.id] = false;
+        }
+      })();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kept, theme]);
@@ -2397,16 +2446,17 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const collationHtml = (activiteNecessiteCollation(st.nom, st.materiel) && idees && idees.length >= 3)
         ? `<div style="margin-top:10px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Suggestions de collation</p><ul style="list-style:none;padding-left:0;margin:0;">${idees.slice(0, 3).map((i) => `<li style="margin-bottom:3px;">• ${escapeHtml(i)}</li>`).join("")}</ul></div>`
         : "";
-      const formesIllustrees = cartesFormes[st.id];
-      const cartesIllustreesHtml = (activiteNecessiteCartesIllustrees(st.materiel) && formesIllustrees && formesIllustrees.length >= 8) ? (() => {
-        const noms = formesIllustrees.slice(0, 8).map((f) => f.charAt(0).toUpperCase() + f.slice(1));
-        const cells = noms.map((n) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:22px 4px;font-size:11px;font-weight:700;color:#54634A;">${escapeHtml(n)}</td>`);
+      const cartesIllustreesListe = cartesImages[st.id];
+      const cartesIllustreesHtml = (activiteNecessiteCartesIllustrees(st.materiel) && cartesIllustreesListe && cartesIllustreesListe.some((c) => c.image)) ? (() => {
+        const pretes = cartesIllustreesListe.filter((c) => c.image);
+        const cells = pretes.map((c) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:10px 6px;"><img src="${c.image}" style="width:90px;height:90px;object-fit:contain;border-radius:8px;" alt="${escapeHtml(c.nom)}" /><div style="font-size:11px;font-weight:700;color:#54634A;margin-top:6px;">${escapeHtml(c.nom)}</div></td>`);
+        const rangees = [];
+        for (let i = 0; i < cells.length; i += 4) rangees.push(`<tr>${cells.slice(i, i + 4).join("")}</tr>`);
         return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — cartes illustrées</p>
-        <h2 style="color:#54634A;margin:4px 0 8px;">${escapeHtml(st.nom)}</h2>
-        <p style="color:#B3A990;font-size:11px;font-style:italic;margin-bottom:12px;">Voir l'aperçu dans l'app pour les illustrations — noms des formes ci-dessous.</p>
+        <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <table style="border-collapse:separate;border-spacing:8px;width:100%;">
-        <tr>${cells.slice(0, 4).join("")}</tr><tr>${cells.slice(4, 8).join("")}</tr></table>
+        ${rangees.join("")}</table>
       </div>`;
       })() : "";
       const questionsQuiz = quizQuestions[st.id];
@@ -2635,7 +2685,7 @@ ${fichesHtml}
           <CartesPrintPage nomActivite={st.nom} theme={theme} items={cartesItems[st.id]} />
         )}
         {activiteNecessiteCartesIllustrees(st.materiel) && (
-          <CartesIllustreesPrintPage nomActivite={st.nom} theme={theme} formes={cartesFormes[st.id]} />
+          <CartesIllustreesPrintPage nomActivite={st.nom} theme={theme} cartes={cartesImages[st.id]} />
         )}
         {activiteNecessiteQuiz(st.nom, st.materiel) && (
           <QuizPrintPage nomActivite={st.nom} theme={theme} questions={quizQuestions[st.id]} />
@@ -2795,8 +2845,8 @@ function WeeklyGridTool({ initialData }) {
   const bingoEnCours = useRef({});
   const [cartesItemsWeek, setCartesItemsWeek] = useState({}); // { [jour__periode]: string[] }
   const cartesEnCoursWeek = useRef({});
-  const [cartesFormesWeek, setCartesFormesWeek] = useState({}); // { [jour__periode]: string[] }
-  const cartesFormesEnCoursWeek = useRef({});
+  const [cartesImagesWeek, setCartesImagesWeek] = useState({}); // { [jour__periode]: {nom, description, image}[] }
+  const cartesImagesEnCoursWeek = useRef({});
   const [collationIdeesWeek, setCollationIdeesWeek] = useState({}); // { [jour__periode]: string[] }
   const collationEnCoursWeek = useRef({});
   const [quizQuestionsWeek, setQuizQuestionsWeek] = useState({}); // { [jour__periode]: {question, reponse}[] }
@@ -2929,25 +2979,34 @@ function WeeklyGridTool({ initialData }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cells, theme, visiblePeriodes.join(","), jours.map((j) => j.name).join(",")]);
 
-  // Même logique automatique pour les cartes ILLUSTRÉES en mode hebdomadaire.
+  // Même logique automatique pour les cartes ILLUSTRÉES en mode
+  // hebdomadaire, avec de vraies images générées par IA.
   useEffect(() => {
     jours.forEach((jourObj) => {
       visiblePeriodes.forEach((periode) => {
         const cell = getCell(jourObj.name, periode);
         if (!activiteNecessiteCartesIllustrees(cell.materiel)) return;
         const key = weeklyCellKey(jourObj.name, periode);
-        if (cartesFormesWeek[key] || cartesFormesEnCoursWeek.current[key]) return;
-        cartesFormesEnCoursWeek.current[key] = true;
-        askClaude(buildCartesIllustreesPrompt({ theme, nomActivite: cell.activite }))
-          .then((raw) => {
-            const formes = normalizeFormes(raw);
-            if (formes.length > 0) {
-              const huit = Array.from({ length: 8 }, (_, i) => formes[i % formes.length]);
-              setCartesFormesWeek((cur) => ({ ...cur, [key]: huit }));
+        if (cartesImagesWeek[key] || cartesImagesEnCoursWeek.current[key]) return;
+        cartesImagesEnCoursWeek.current[key] = true;
+        const itemMateriel = (cell.materiel || []).find((m) => activiteNecessiteCartesIllustrees([m]));
+        (async () => {
+          try {
+            const raw = await askClaude(buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite: cell.activite, itemMateriel }));
+            const liste = Array.isArray(raw?.cartes) ? raw.cartes.slice(0, CARTES_ILLUSTREES_MAX) : [];
+            if (liste.length === 0) return;
+            const resultats = [];
+            for (const carte of liste) {
+              const image = await generateOpenAIImage(carte.description);
+              resultats.push({ nom: carte.nom, description: carte.description, image });
+              setCartesImagesWeek((cur) => ({ ...cur, [key]: [...resultats] }));
             }
-          })
-          .catch(() => {})
-          .finally(() => { cartesFormesEnCoursWeek.current[key] = false; });
+          } catch (e) {
+            // échec silencieux
+          } finally {
+            cartesImagesEnCoursWeek.current[key] = false;
+          }
+        })();
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3178,16 +3237,17 @@ function WeeklyGridTool({ initialData }) {
         <tr>${cartesCells.slice(0, 4).join("")}</tr><tr>${cartesCells.slice(4, 8).join("")}</tr></table>
       </div>`);
       }
-      const formesIllustreesC = cartesFormesWeek[weeklyCellKey(jourObj.name, periode)];
-      if (activiteNecessiteCartesIllustrees(c.materiel) && formesIllustreesC && formesIllustreesC.length >= 8) {
-        const nomsC = formesIllustreesC.slice(0, 8).map((f) => f.charAt(0).toUpperCase() + f.slice(1));
-        const cellsIllustrees = nomsC.map((n) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:22px 4px;font-size:11px;font-weight:700;color:#54634A;">${escapeHtml(n)}</td>`);
+      const cartesIllustreesListeC = cartesImagesWeek[weeklyCellKey(jourObj.name, periode)];
+      if (activiteNecessiteCartesIllustrees(c.materiel) && cartesIllustreesListeC && cartesIllustreesListeC.some((ci) => ci.image)) {
+        const pretesC = cartesIllustreesListeC.filter((ci) => ci.image);
+        const cellsIllustrees = pretesC.map((ci) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:10px 6px;"><img src="${ci.image}" style="width:90px;height:90px;object-fit:contain;border-radius:8px;" alt="${escapeHtml(ci.nom)}" /><div style="font-size:11px;font-weight:700;color:#54634A;margin-top:6px;">${escapeHtml(ci.nom)}</div></td>`);
+        const rangeesC = [];
+        for (let i = 0; i < cellsIllustrees.length; i += 4) rangeesC.push(`<tr>${cellsIllustrees.slice(i, i + 4).join("")}</tr>`);
         fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Matériel — cartes illustrées</p>
-        <h2 style="color:#54634A;margin:4px 0 8px;">${escapeHtml(c.activite)}</h2>
-        <p style="color:#B3A990;font-size:11px;font-style:italic;margin-bottom:12px;">Voir l'aperçu dans l'app pour les illustrations — noms des formes ci-dessous.</p>
+        <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         <table style="border-collapse:separate;border-spacing:8px;width:100%;">
-        <tr>${cellsIllustrees.slice(0, 4).join("")}</tr><tr>${cellsIllustrees.slice(4, 8).join("")}</tr></table>
+        ${rangeesC.join("")}</table>
       </div>`);
       }
       const questionsQuizC = quizQuestionsWeek[weeklyCellKey(jourObj.name, periode)];
@@ -3656,7 +3716,7 @@ ${fichesHtml.join("")}
               <CartesPrintPage nomActivite={cell.activite} theme={theme} items={cartesItemsWeek[key]} />
             )}
             {activiteNecessiteCartesIllustrees(cell.materiel) && (
-              <CartesIllustreesPrintPage nomActivite={cell.activite} theme={theme} formes={cartesFormesWeek[key]} />
+              <CartesIllustreesPrintPage nomActivite={cell.activite} theme={theme} cartes={cartesImagesWeek[key]} />
             )}
             {activiteNecessiteQuiz(cell.activite, cell.materiel) && (
               <QuizPrintPage nomActivite={cell.activite} theme={theme} questions={quizQuestionsWeek[key]} />

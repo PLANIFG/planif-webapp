@@ -560,21 +560,26 @@ Réponds UNIQUEMENT avec un tableau JSON valide de 8 chaînes, sans texte avant/
 // d'images (OpenAI) pour produire une vraie illustration.
 const CARTES_ILLUSTREES_MAX = 8;
 function buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite, itemMateriel }) {
+  const norm = String(itemMateriel || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const estUneRecette = norm.includes("recette");
+  const consigneType = estUneRecette
+    ? `Cet item concerne une RECETTE — les cartes doivent illustrer les ÉTAPES de préparation, dans l'ordre (une carte = une étape), pas un seul objet générique. Prévois généralement entre 4 et 6 étapes selon la complexité de la recette liée à l'activité.`
+    : `Détermine combien de cartes différentes sont réellement nécessaires pour cette activité (si un nombre est mentionné dans l'item de matériel, respecte-le ; sinon choisis un nombre raisonnable, généralement entre 4 et ${CARTES_ILLUSTREES_MAX}).`;
   return `Tu prépares des cartes à découper ILLUSTRÉES pour une activité de service de garde en milieu scolaire.
 
 Activité : "${nomActivite}"
 Thème de la journée : "${theme || "non précisé"}"
 Item de matériel demandé : "${itemMateriel || "cartes illustrées"}"
 
-Détermine combien de cartes différentes sont réellement nécessaires pour cette activité (si un nombre est mentionné dans l'item de matériel, respecte-le ; sinon choisis un nombre raisonnable, généralement entre 4 et ${CARTES_ILLUSTREES_MAX}). Ne dépasse JAMAIS ${CARTES_ILLUSTREES_MAX} cartes.
+${consigneType} Ne dépasse JAMAIS ${CARTES_ILLUSTREES_MAX} cartes au total.
 
-Pour chaque carte, écris une courte description visuelle (en français, une phrase simple) décrivant précisément ce qui doit être illustré, adaptée à un dessin simple et coloré pour enfants (ex. "Une pomme rouge brillante, style dessin plat, fond blanc").
+Pour chaque carte, écris une courte description visuelle (en français, une phrase simple) décrivant précisément ce qui doit être illustré. Précise TOUJOURS dans la description : un style d'illustration plate et colorée pour enfants (pas une photo réaliste), sur un fond BLANC UNI et dégagé (comme un autocollant à découper) — par exemple : "Une pomme rouge brillante, style illustration plate et colorée pour enfants, fond blanc uni".
 
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format exact :
 {
   "nombre": 6,
   "cartes": [
-    { "nom": "Pomme", "description": "Une pomme rouge brillante, style dessin plat, fond blanc" }
+    { "nom": "Pomme", "description": "Une pomme rouge brillante, style illustration plate et colorée pour enfants, fond blanc uni" }
   ]
 }
 (Le tableau "cartes" doit contenir exactement "nombre" éléments, et "nombre" ne doit jamais dépasser ${CARTES_ILLUSTREES_MAX}.)`;
@@ -626,10 +631,10 @@ function CartesIllustreesPrintPage({ nomActivite, theme, cartes }) {
       <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Matériel — cartes illustrées</p>
       <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{nomActivite}</h2>
       <div className="leaf-underline w-16 mt-3 mb-6" />
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {pretes.map((carte, i) => (
-          <div key={i} className="border border-dashed border-[#DCD3C2] rounded-xl py-3 px-2 text-center">
-            <img src={carte.image} alt={carte.nom} className="w-full h-auto rounded-lg mx-auto" style={{ maxWidth: 110 }} />
+          <div key={i} className="border border-dashed border-[#DCD3C2] rounded-xl py-3 px-2 text-center overflow-hidden">
+            <img src={carte.image} alt={carte.nom} className="w-full h-auto block mx-auto rounded-lg" style={{ maxWidth: 110, aspectRatio: "1 / 1", objectFit: "cover" }} />
             <div className="mt-1" style={{ fontSize: 11.5, fontWeight: 700, color: COLORS.mossDark }}>{carte.nom}</div>
           </div>
         ))}
@@ -2449,7 +2454,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const cartesIllustreesListe = cartesImages[st.id];
       const cartesIllustreesHtml = (activiteNecessiteCartesIllustrees(st.materiel) && cartesIllustreesListe && cartesIllustreesListe.some((c) => c.image)) ? (() => {
         const pretes = cartesIllustreesListe.filter((c) => c.image);
-        const cells = pretes.map((c) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:10px 6px;"><img src="${c.image}" style="width:90px;height:90px;object-fit:contain;border-radius:8px;" alt="${escapeHtml(c.nom)}" /><div style="font-size:11px;font-weight:700;color:#54634A;margin-top:6px;">${escapeHtml(c.nom)}</div></td>`);
+        const cells = pretes.map((c) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:10px 6px;"><div style="width:90px;height:90px;border-radius:8px;overflow:hidden;margin:0 auto;"><img src="${c.image}" style="width:90px;height:90px;object-fit:cover;display:block;" alt="${escapeHtml(c.nom)}" /></div><div style="font-size:11px;font-weight:700;color:#54634A;margin-top:6px;">${escapeHtml(c.nom)}</div></td>`);
         const rangees = [];
         for (let i = 0; i < cells.length; i += 4) rangees.push(`<tr>${cells.slice(i, i + 4).join("")}</tr>`);
         return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
@@ -3240,7 +3245,7 @@ function WeeklyGridTool({ initialData }) {
       const cartesIllustreesListeC = cartesImagesWeek[weeklyCellKey(jourObj.name, periode)];
       if (activiteNecessiteCartesIllustrees(c.materiel) && cartesIllustreesListeC && cartesIllustreesListeC.some((ci) => ci.image)) {
         const pretesC = cartesIllustreesListeC.filter((ci) => ci.image);
-        const cellsIllustrees = pretesC.map((ci) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:10px 6px;"><img src="${ci.image}" style="width:90px;height:90px;object-fit:contain;border-radius:8px;" alt="${escapeHtml(ci.nom)}" /><div style="font-size:11px;font-weight:700;color:#54634A;margin-top:6px;">${escapeHtml(ci.nom)}</div></td>`);
+        const cellsIllustrees = pretesC.map((ci) => `<td style="border:1px dashed #DCD3C2;border-radius:8px;text-align:center;padding:10px 6px;"><div style="width:90px;height:90px;border-radius:8px;overflow:hidden;margin:0 auto;"><img src="${ci.image}" style="width:90px;height:90px;object-fit:cover;display:block;" alt="${escapeHtml(ci.nom)}" /></div><div style="font-size:11px;font-weight:700;color:#54634A;margin-top:6px;">${escapeHtml(ci.nom)}</div></td>`);
         const rangeesC = [];
         for (let i = 0; i < cellsIllustrees.length; i += 4) rangeesC.push(`<tr>${cellsIllustrees.slice(i, i + 4).join("")}</tr>`);
         fichesHtml.push(`<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">

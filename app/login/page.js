@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
@@ -9,6 +9,29 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const feuilles = useMemo(() => {
+    const couleurs = [
+      { fond: "#D8935B", nervure: "#B5763C" },
+      { fond: "#C4713B", nervure: "#8F5426" },
+      { fond: "#E6B85C", nervure: "#B5883A" },
+      { fond: "#A3644A", nervure: "#7A4732" },
+    ];
+    const n = 9;
+    return Array.from({ length: n }).map((_, i) => {
+      const c = couleurs[Math.floor(Math.random() * couleurs.length)];
+      return {
+        id: i,
+        fond: c.fond,
+        nervure: c.nervure,
+        taille: 14 + Math.round(Math.random() * 8),
+        gauche: Math.round((i / n) * 100 + Math.random() * 8),
+        duree: (6 + Math.random() * 4).toFixed(1),
+        delai: (Math.random() * 6).toFixed(1),
+        balanceDuree: (2 + Math.random() * 1.5).toFixed(1),
+      };
+    });
+  }, []);
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
@@ -84,9 +107,31 @@ export default function LoginPage() {
           align-items: center;
           text-align: center;
           padding: 40px 28px 44px;
+          position: relative;
+          overflow: hidden;
+        }
+        .feuilles-automne{
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+        }
+        .feuille{
+          position: absolute;
+          top: -24px;
+          animation: tomber linear infinite, balancer ease-in-out infinite;
+        }
+        @keyframes tomber{
+          0% { transform: translateY(-24px) rotate(0deg); opacity: 0; }
+          10% { opacity: 0.85; }
+          100% { transform: translateY(260px) rotate(360deg); opacity: 0; }
+        }
+        @keyframes balancer{
+          0%, 100% { margin-left: 0; }
+          50% { margin-left: 18px; }
         }
         .contenu-marque{
           max-width: 460px;
+          position: relative;
         }
         .contenu-marque h1{
           font-family:'Baloo 2', sans-serif;
@@ -264,6 +309,33 @@ export default function LoginPage() {
 
       <div className="planif-login-root">
         <div className="panneau-marque">
+          <div className="feuilles-automne" aria-hidden="true">
+            {feuilles.map((f) => (
+              <svg
+                key={f.id}
+                className="feuille"
+                width={f.taille}
+                height={f.taille}
+                viewBox="0 0 16 16"
+                style={{
+                  left: `${f.gauche}%`,
+                  animationDuration: `${f.duree}s, ${f.balanceDuree}s`,
+                  animationDelay: `${f.delai}s, ${f.delai}s`,
+                }}
+              >
+                <path d="M8 1c3 2 6 5 6 8a6 6 0 0 1-12 0c0-3 3-6 6-8z" fill={f.fond} />
+                <path
+                  d="M8 2.5v10.5M8 6l-3 1.5M8 6l3 1.5M8 9l-2.5 1.5M8 9l2.5 1.5"
+                  stroke={f.nervure}
+                  strokeWidth="0.6"
+                  strokeLinecap="round"
+                  fill="none"
+                  opacity="0.6"
+                />
+              </svg>
+            ))}
+          </div>
+
           <div className="contenu-marque">
             <h1>Planificateur d&apos;activités</h1>
 

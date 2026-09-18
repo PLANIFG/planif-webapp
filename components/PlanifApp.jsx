@@ -1108,13 +1108,24 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, sans b
 ]`;
 }
 
+// Quand un seul groupe d'âge est sélectionné, on demande en plus une courte
+// note d'adaptation (variante plus simple pour plus jeunes, variante plus
+// avancée pour plus vieux) — pratique si d'autres âges se joignent sans
+// avoir besoin du mode multi-âge complet (rôles, mécaniques dédiées, etc.).
+function adaptationInstruction(ages) {
+  if (ages && ages.length === 1) {
+    return `\nPuisqu'un seul groupe d'âge est ciblé (${ages[0]}), propose AUSSI une courte note d'adaptation : une variante simplifiée pour des enfants plus jeunes que ce groupe, et une variante un peu plus avancée pour des enfants plus vieux — chacune en une seule phrase courte, sans réinventer l'activité au complet.\n`;
+  }
+  return "";
+}
+
 function buildSinglePrompt({ theme, ages, lieux, avoidNames, isMercredi, lieuAssigne, approcheIndex }) {
   return `Tu conçois des activités pour des journées pédagogiques en milieu scolaire (élèves du primaire).
 
 Thème : "${theme}"
 Groupes d'âge : ${ages.length ? ages.join(", ") : "4-12 ans"}
 ${lieuAssigne ? `Lieu à utiliser pour CETTE activité : "${lieuAssigne}" — n'utilise aucun autre lieu, l'activité doit être pensée spécifiquement pour cet endroit.` : `Lieux disponibles : ${lieux.length ? lieux.join(", ") : "à déterminer"}`}
-${agesInstruction(ages, approcheIndex)}
+${agesInstruction(ages, approcheIndex)}${adaptationInstruction(ages)}
 Propose UNE nouvelle idée d'activité, différente de celles-ci : ${avoidNames.join(", ") || "aucune"}.
 IMPORTANT : ${isMercredi ? "l'activité doit durer 30 MINUTES MAXIMUM (c'est le temps alloué par bloc de rotation)." : "l'activité doit durer 60 minutes MAXIMUM (idéalement 30 à 60 minutes)."}
 Écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité de façon vivante.
@@ -1127,7 +1138,9 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format e
   "duree": "Durée estimée",
   "amorce": "Courte amorce à dire aux enfants",
   "deroulement": ["Étape 1", "Étape 2", "Étape 3", "Étape 4"],
-  "materiel": ["Item 1", "Item 2"]
+  "materiel": ["Item 1", "Item 2"],
+  "adaptationPlusJeunes": "${ages && ages.length === 1 ? "Variante simplifiée en une phrase" : ""}",
+  "adaptationPlusVieux": "${ages && ages.length === 1 ? "Variante plus avancée en une phrase" : ""}"
 }`;
 }
 
@@ -2550,6 +2563,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
         ${st.amorce ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(st.amorce)}</p>` : ""}
         ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
         ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
+        ${(st.adaptationPlusJeunes || st.adaptationPlusVieux) ? `<div style="margin-top:16px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Adaptation selon l'âge</p>${st.adaptationPlusJeunes ? `<p style="font-size:13px;margin:2px 0;"><strong>Plus jeunes :</strong> ${escapeHtml(st.adaptationPlusJeunes)}</p>` : ""}${st.adaptationPlusVieux ? `<p style="font-size:13px;margin:2px 0;"><strong>Plus vieux :</strong> ${escapeHtml(st.adaptationPlusVieux)}</p>` : ""}</div>` : ""}
         ${collationHtml}
       </div>${bingoHtml}${cartesHtml}${cartesIllustreesHtml}${quizHtml}${materielGenereHtml}`;
     }).join("");
@@ -2727,6 +2741,13 @@ ${fichesHtml}
           </ul>
           {activiteNecessiteCollation(st.nom, st.materiel) && (
             <CollationSuggestions idees={collationIdees[st.id]} />
+          )}
+          {(st.adaptationPlusJeunes || st.adaptationPlusVieux) && (
+            <div className="mt-3 p-3 rounded-lg border border-[#E3DACB] bg-white">
+              <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: COLORS.moss }}>Adaptation selon l'âge</p>
+              {st.adaptationPlusJeunes && <p className="text-sm mb-0.5"><strong>Plus jeunes :</strong> {st.adaptationPlusJeunes}</p>}
+              {st.adaptationPlusVieux && <p className="text-sm"><strong>Plus vieux :</strong> {st.adaptationPlusVieux}</p>}
+            </div>
           )}
         </div>
         {activiteNecessiteBingo(st.nom) && (

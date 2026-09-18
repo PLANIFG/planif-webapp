@@ -3474,7 +3474,19 @@ ${fichesHtml.join("")}
                               {loadingCell === key ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                             </button>
                           </div>
-                          <TextField value={cell.activite} onChange={(v) => setCell(jourObj.name, periode, { activite: v })} placeholder="Activité" className="mb-1.5" />
+                          <TextField
+                            value={cell.activite}
+                            onChange={(v) => setCell(jourObj.name, periode, {
+                              activite: v,
+                              // Un nom tapé manuellement ne correspond plus au
+                              // résumé/déroulement/matériel générés pour
+                              // l'ancienne activité — on les efface pour ne
+                              // pas afficher un contenu qui n'a plus de lien.
+                              resume: "", amorce: "", description: "", materiel: [], domaines: [],
+                            })}
+                            placeholder="Activité"
+                            className="mb-1.5"
+                          />
                           <div className="flex gap-1.5 mb-2">
                             <TextField value={cell.local} onChange={(v) => setCell(jourObj.name, periode, { local: v })} placeholder="Local" />
                             <TextField value={cell.duree} onChange={(v) => setCell(jourObj.name, periode, { duree: v })} placeholder="Durée" className="max-w-[90px]" />

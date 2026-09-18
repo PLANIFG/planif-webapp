@@ -1321,7 +1321,29 @@ export default function App() {
     // recherche.
     setTheme("");
     setLieux(["Gymnase", "Cuisine", "Labo créatif"]);
+    // Le matériel généré automatiquement (bingo, cartes, quiz, etc.) est
+    // propre à chaque planification — il ne doit pas non plus survivre
+    // d'un mode à l'autre.
+    setBingoMots({});
+    setCartesItems({});
+    setCartesImages({});
+    setCollationIdees({});
+    setQuizQuestions({});
+    setMaterielGenere({});
   };
+
+  // Matériel généré automatiquement (bingo, cartes, cartes illustrées,
+  // quiz, collation, détecteur général) — vit ici (au niveau du composant
+  // principal) plutôt que dans PrintView, pour survivre aux changements
+  // d'onglet ET pouvoir être sauvegardé/rechargé depuis la bibliothèque.
+  // Sans ça, ce matériel se régénérait (et se refacturait, pour les vraies
+  // images OpenAI) à chaque fois qu'on quittait puis revenait à l'aperçu.
+  const [bingoMots, setBingoMots] = useState({}); // { [activityId]: string[] }
+  const [cartesItems, setCartesItems] = useState({}); // { [activityId]: string[] }
+  const [cartesImages, setCartesImages] = useState({}); // { [activityId]: {nom, info, description, image}[] }
+  const [collationIdees, setCollationIdees] = useState({}); // { [activityId]: string[] }
+  const [quizQuestions, setQuizQuestions] = useState({}); // { [activityId]: {question, reponse}[] }
+  const [materielGenere, setMaterielGenere] = useState({}); // { [activityId]: { [itemMateriel]: data } }
 
   // Recharge une planification sauvegardée (Journée pédagogique/Concertation/
   // Mercredi/Horaire personnalisé) dans l'éditeur complet, pour permettre de
@@ -1345,6 +1367,12 @@ export default function App() {
     setTransitionEnabled(!!payload.transitionData);
     setTransitionData(payload.transitionData || null);
     setTransitionImages(payload.transitionImages || []);
+    setBingoMots(payload.bingoMots || {});
+    setCartesItems(payload.cartesItems || {});
+    setCartesImages(payload.cartesImages || {});
+    setCollationIdees(payload.collationIdees || {});
+    setQuizQuestions(payload.quizQuestions || {});
+    setMaterielGenere(payload.materielGenere || {});
     setEditingId(null);
     setError("");
     setShowBiblio(false);
@@ -1683,6 +1711,12 @@ export default function App() {
               isMercredi={isMercredi} mercredis={mercredis} activitesParMercredi={activitesParMercredi}
               transitionEnabled={transitionEnabled} transitionData={transitionData} transitionImages={transitionImages}
               dayType={dayType}
+              bingoMots={bingoMots} setBingoMots={setBingoMots}
+              cartesItems={cartesItems} setCartesItems={setCartesItems}
+              cartesImages={cartesImages} setCartesImages={setCartesImages}
+              collationIdees={collationIdees} setCollationIdees={setCollationIdees}
+              quizQuestions={quizQuestions} setQuizQuestions={setQuizQuestions}
+              materielGenere={materielGenere} setMaterielGenere={setMaterielGenere}
               onBack={() => setTab("horaire")}
             />
           )}
@@ -2248,15 +2282,21 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDr
 }
 
 // ================= APERÇU / IMPRESSION =================
-function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack }) {
+function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack,
+  bingoMots, setBingoMots, cartesItems, setCartesItems, cartesImages, setCartesImages, collationIdees, setCollationIdees, quizQuestions, setQuizQuestions, materielGenere, setMaterielGenere,
+}) {
   const [savingBiblio, setSavingBiblio] = useState(false);
   const [biblioSaved, setBiblioSaved] = useState(false);
 
   // Génération automatique du bingo pour toute activité retenue dont le nom
   // contient "bingo" — sans case à cocher, déclenchée une seule fois par
   // activité, uniquement côté navigateur (dans useEffect, jamais pendant le
-  // rendu initial), donc sans risque d'incohérence serveur/client.
-  const [bingoMots, setBingoMots] = useState({}); // { [activityId]: string[] }
+  // rendu initial), donc sans risque d'incohérence serveur/client. L'état
+  // lui-même (bingoMots, etc.) vit maintenant dans le composant App
+  // (passé en prop), pour survivre aux changements d'onglet ET pour
+  // pouvoir être sauvegardé dans la bibliothèque — sans ça, ce matériel se
+  // régénérait (et se refacturait) à chaque fois qu'on quittait puis
+  // revenait à l'aperçu.
   const bingoEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
@@ -2277,7 +2317,6 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
 
   // Même logique automatique pour les cartes à découper, détectées quand
   // "cartes" apparaît dans le matériel d'une activité.
-  const [cartesItems, setCartesItems] = useState({}); // { [activityId]: string[] }
   const cartesEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
@@ -2302,7 +2341,6 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
   // carte est illustrée séparément. Génération séquentielle (une image à
   // la fois) plutôt qu'en parallèle, pour rester raisonnable côté coût
   // et débit de l'API.
-  const [cartesImages, setCartesImages] = useState({}); // { [activityId]: {nom, description, image}[] }
   const cartesImagesEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
@@ -2334,7 +2372,6 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
 
   // Même logique automatique pour les suggestions de collation, détectées
   // via "collation" dans le nom ou le matériel d'une activité.
-  const [collationIdees, setCollationIdees] = useState({}); // { [activityId]: string[] }
   const collationEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
@@ -2355,7 +2392,6 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
 
   // Même logique automatique pour le quiz vrai ou faux, détecté via "quiz"
   // dans le nom ou le matériel d'une activité.
-  const [quizQuestions, setQuizQuestions] = useState({}); // { [activityId]: {question, reponse}[] }
   const quizEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
@@ -2378,7 +2414,6 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
   // fabriquer (fiches, étiquettes, recettes illustrées, etc.) — une
   // activité peut avoir plusieurs items concernés à la fois, donc l'état
   // est indexé par activité PUIS par item de matériel.
-  const [materielGenere, setMaterielGenere] = useState({}); // { [activityId]: { [itemMateriel]: data } }
   const materielGenereEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
@@ -2742,6 +2777,7 @@ ${fichesHtml}
                   })),
                   transitionData: transitionEnabled ? transitionData : null,
                   transitionImages: transitionEnabled ? transitionImages : [],
+                  bingoMots, cartesItems, cartesImages, collationIdees, quizQuestions, materielGenere,
                 },
               });
             }
@@ -2857,17 +2893,17 @@ function WeeklyGridTool({ initialData }) {
   const [lieuxSaved, setLieuxSaved] = useState(false);
   const [savingBiblio, setSavingBiblio] = useState(false);
   const [biblioSaved, setBiblioSaved] = useState(false);
-  const [bingoMots, setBingoMots] = useState({}); // { [jour__periode]: string[] }
+  const [bingoMots, setBingoMots] = useState(initialData?.bingoMots || {}); // { [jour__periode]: string[] }
   const bingoEnCours = useRef({});
-  const [cartesItemsWeek, setCartesItemsWeek] = useState({}); // { [jour__periode]: string[] }
+  const [cartesItemsWeek, setCartesItemsWeek] = useState(initialData?.cartesItems || {}); // { [jour__periode]: string[] }
   const cartesEnCoursWeek = useRef({});
-  const [cartesImagesWeek, setCartesImagesWeek] = useState({}); // { [jour__periode]: {nom, description, image}[] }
+  const [cartesImagesWeek, setCartesImagesWeek] = useState(initialData?.cartesImages || {}); // { [jour__periode]: {nom, description, image}[] }
   const cartesImagesEnCoursWeek = useRef({});
-  const [collationIdeesWeek, setCollationIdeesWeek] = useState({}); // { [jour__periode]: string[] }
+  const [collationIdeesWeek, setCollationIdeesWeek] = useState(initialData?.collationIdees || {}); // { [jour__periode]: string[] }
   const collationEnCoursWeek = useRef({});
-  const [quizQuestionsWeek, setQuizQuestionsWeek] = useState({}); // { [jour__periode]: {question, reponse}[] }
+  const [quizQuestionsWeek, setQuizQuestionsWeek] = useState(initialData?.quizQuestions || {}); // { [jour__periode]: {question, reponse}[] }
   const quizEnCoursWeek = useRef({});
-  const [materielGenereWeek, setMaterielGenereWeek] = useState({}); // { [jour__periode]: { [itemMateriel]: data } }
+  const [materielGenereWeek, setMaterielGenereWeek] = useState(initialData?.materielGenere || {}); // { [jour__periode]: { [itemMateriel]: data } }
   const materielGenereEnCoursWeek = useRef({});
   useEffect(() => {
     (async () => {
@@ -3778,6 +3814,8 @@ ${fichesHtml.join("")}
                       periodes: visiblePeriodes,
                       transitionData: transitionEnabled ? transitionData : null,
                       transitionImages: transitionEnabled ? transitionImages : [],
+                      bingoMots, cartesItems: cartesItemsWeek, cartesImages: cartesImagesWeek,
+                      collationIdees: collationIdeesWeek, quizQuestions: quizQuestionsWeek, materielGenere: materielGenereWeek,
                     },
                   });
                 }

@@ -44,7 +44,7 @@ const MULTIAGE_APPROACHES = [
 function agesInstruction(ages, approchIndex = 0) {
   if (ages && ages.length === AGES.length && AGES.every((a) => ages.includes(a))) {
     const approche = MULTIAGE_APPROACHES[approchIndex % MULTIAGE_APPROACHES.length];
-    return `\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — le groupe est donc MULTI-ÂGE (4-12 ans réunis). Pour CETTE activité précisément, organise-la sous la forme suivante : ${approche}. Évite les autres structures multi-âge possibles pour cette activité — varie l'approche d'une activité à l'autre.\n`;
+    return `\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — le groupe est donc MULTI-ÂGE (4-12 ans réunis). Pour CETTE activité précisément, organise-la sous la forme suivante : ${approche}. Évite les autres structures multi-âge possibles pour cette activité — varie l'approche d'une activité à l'autre.\nÉvite, la plupart du temps, les mécaniques de cartes-énigmes/indices à décoder en plusieurs étapes (ex. "cartes-missions" à déchiffrer, chasse aux indices séquentielle) — ce genre de dispositif demande beaucoup de préparation et d'explications sur le terrain. Privilégie des consignes simples et directes. Ce type de mécanique peut apparaître occasionnellement, mais ne doit pas être la norme.\n`;
   }
   return "";
 }

@@ -3834,7 +3834,7 @@ ${fichesHtml.join("")}
                       groupeNom, educatrice, semaine, theme, jours, cells,
                       periodes: visiblePeriodes,
                       transitionData: transitionEnabled ? transitionData : null,
-                      transitionImages: transitionEnabled ? transitionImages : [],
+
                       bingoMots, cartesItems: cartesItemsWeek, cartesImages: cartesImagesWeek,
                       collationIdees: collationIdeesWeek, quizQuestions: quizQuestionsWeek, materielGenere: materielGenereWeek,
                     },

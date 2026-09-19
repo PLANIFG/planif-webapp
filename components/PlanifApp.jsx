@@ -2797,7 +2797,7 @@ ${fichesHtml}
                     cells: row.cells ? row.cells.map((c) => (c ? { nom: c.nom, lieu: c.lieu } : null)) : undefined,
                   })),
                   transitionData: transitionEnabled ? transitionData : null,
-                  transitionImages: transitionEnabled ? transitionImages : [],
+                  
                   bingoMots, cartesItems, cartesImages, collationIdees, quizQuestions, materielGenere,
                 },
               });

@@ -3891,7 +3891,8 @@ function BibliothequeView({ onBack, onResumeJournee, onResumeSemaine }) {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) { setLoading(false); return; }
       const { data: settings } = await supabase.from("user_settings").select("library_name").eq("user_id", user.id).maybeSingle();
       if (settings?.library_name) setLibraryName(settings.library_name);

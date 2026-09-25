@@ -2038,10 +2038,15 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362] mb-1">Déroulement</p>
         <ul className="space-y-1">
           {(idea.deroulement || []).map((line, i) => (
-            <li key={i} className="text-sm flex items-start gap-2">
-              <span className="text-[#B3A990] mt-0.5">{i + 1}.</span>
-              {isEditing ? <TextField value={line} onChange={(v) => onUpdateListField("deroulement", i, v)} /> : <span>{line}</span>}
-            </li>
+                       <li key={i} className="text-sm flex items-start gap-2">
+                <span className="text-[#B3A990] mt-0.5">{i + 1}.</span>
+                {isEditing ? (
+                  <div className="flex-1 flex items-center gap-1">
+                    <TextField value={line} onChange={(v) => onUpdateListField("deroulement", i, v)} />
+                    <button onClick={() => onRemoveListItem("deroulement", i)} className="text-[#B3A990] hover:text-[#10192B]"><Trash2 size={13} /></button>
+                  </div>
+                ) : <span>{line}</span>}
+              </li>
           ))}
         </ul>
         {isEditing && <button onClick={() => onAddListItem("deroulement")} className="mt-1 text-xs font-semibold text-[#7C9070] flex items-center gap-1"><Plus size={12} /> Étape</button>}
@@ -2065,6 +2070,39 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         {isEditing && <button onClick={() => onAddListItem("materiel")} className="mt-1 text-xs font-semibold text-[#7C9070] flex items-center gap-1"><Plus size={12} /> Item</button>}
       </div>
 
+              {(idea.adaptationPlusJeunes || idea.adaptationPlusVieux || isEditing) && (
+                <div className="mb-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362] mb-1">Adaptation selon l'âge</p>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-[11px] font-semibold text-[#B3A990] mb-0.5">Plus jeunes</p>
+                      {isEditing ? (
+                        <textarea
+                          value={idea.adaptationPlusJeunes || ""}
+                          onChange={(e) => onUpdate({ adaptationPlusJeunes: e.target.value })}
+                          rows={2}
+                          className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                        />
+                      ) : (
+                        idea.adaptationPlusJeunes && <p className="text-sm text-[#2B2A26]">{idea.adaptationPlusJeunes}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-[#B3A990] mb-0.5">Plus vieux</p>
+                      {isEditing ? (
+                        <textarea
+                          value={idea.adaptationPlusVieux || ""}
+                          onChange={(e) => onUpdate({ adaptationPlusVieux: e.target.value })}
+                          rows={2}
+                          className="w-full bg-white border border-[#DCD3C2] rounded-lg px-2.5 py-1.5 text-sm text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+                        />
+                      ) : (
+                        idea.adaptationPlusVieux && <p className="text-sm text-[#2B2A26]">{idea.adaptationPlusVieux}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
       <div className="mt-auto flex items-center gap-2 pt-2 border-t border-[#EDE6D8]">
         {isKept ? (
           <button onClick={onUnkeep} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white" style={{ background: COLORS.moss }}><Check size={14} /> Retenue</button>

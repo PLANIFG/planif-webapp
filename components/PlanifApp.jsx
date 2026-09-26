@@ -523,10 +523,9 @@ function BingoPrintPage({ nomActivite, theme, mots }) {
 // sans distinction d'accents/majuscules. Distinct des cartes ILLUSTRÉES
 // (voir plus bas) — un même matériel ne déclenche que l'un ou l'autre.
 function activiteNecessiteCartes(materiel) {
-  return (materiel || []).some((m) => {
-    const norm = String(m || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return norm.includes("carte") && !norm.includes("illustr");
-  });
+  // Désactivée : "carte" génère maintenant toujours de vraies images
+  // (voir activiteNecessiteCartesIllustrees) plutôt qu'une liste de texte.
+  return false;
 }
 
 // Cartes ILLUSTRÉES : seulement quand "illustr" (illustré/illustrées/
@@ -534,11 +533,10 @@ function activiteNecessiteCartes(materiel) {
 // formes déjà dessinées dans l'app (bibliothèque de coloriage) plutôt que
 // du texte libre, puisque l'app ne peut pas générer de vraies images.
 function activiteNecessiteCartesIllustrees(materiel) {
+ function activiteNecessiteCartesIllustrees(materiel) {
   return (materiel || []).some((m) => {
     const norm = String(m || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const estCarteIllustree = (norm.includes("carte") || norm.includes("carton")) && norm.includes("illustr");
-    const estAutreVisuel = norm.includes("image") || norm.includes("silhouette") || norm.includes("empreinte") || norm.includes("mue");
-    return estCarteIllustree || estAutreVisuel;
+    return norm.includes("carte") || norm.includes("carton") || norm.includes("image") || norm.includes("silhouette") || norm.includes("empreinte") || norm.includes("mue") || norm.includes("photo") || norm.includes("modele") || norm.includes("gabarit");
   });
 }
 function buildCartesPrompt({ theme, nomActivite }) {

@@ -656,6 +656,45 @@ function CartesIllustreesPrintPage({ nomActivite, theme, cartes }) {
 
 // ---------- Matériel détecté automatiquement (suggestions de collation) ----------
 // Repère si "collation" apparaît dans le nom OU le matériel d'une activité.
+// ---------- Détection d'une activité cuisine (par le lieu) ----------
+// Une activité est considérée comme une recette de cuisine quand son lieu
+// est "Cuisine" — signal fiable choisi par l'éducatrice elle-même, plutôt
+// que de chercher un mot précis dans le texte (qui n'apparaît pas toujours).
+function activiteEstCuisine(lieu) {
+  const norm = String(lieu || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return norm.includes("cuisine");
+}
+
+// Demande à Claude une courte description visuelle du plat terminé, à
+// partir des ingrédients (avec quantités) et du déroulement, puis cette
+// description sert de prompt pour générer une vraie photo (OpenAI).
+function buildPhotoResultatPrompt({ nomActivite, materiel, deroulement }) {
+  const materielTxt = (materiel || []).join(", ");
+  const etapesTxt = (deroulement || []).join(" / ");
+  return `Tu prépares une description visuelle pour générer UNE photo réaliste du résultat final d'une recette de cuisine faite par des enfants en service de garde.
+
+Activité : "${nomActivite}"
+Ingrédients (avec quantités) : ${materielTxt || "non précisé"}
+Déroulement : ${etapesTxt || "non précisé"}
+
+Écris UNE seule phrase descriptive (en français) pour un générateur d'images, décrivant à quoi devrait ressembler le plat terminé, de façon réaliste et appétissante, présenté simplement sur une assiette ou un plat, fond neutre, éclairage naturel, style photo culinaire simple (pas de texte, pas de personnes, pas d'enfants).
+
+Réponds UNIQUEMENT avec la description, sans guillemets, sans texte avant/après.`;
+}
+
+function PhotoResultatPrintPage({ nomActivite, image }) {
+  if (!image) return null;
+  return (
+    <div className="print-page bg-white border border-[#E3DACB] print-shadow-off rounded-2xl p-8 mb-8" style={{ boxShadow: "0 1px 3px rgba(43,42,38,0.06)" }}>
+      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>Résultat final</p>
+      <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{nomActivite}</h2>
+      <div className="leaf-underline w-16 mt-3 mb-6" />
+      <div className="flex items-center justify-center">
+        <img src={image} alt="Résultat final" className="max-w-full max-h-[500px] rounded-xl border border-[#E3DACB]" />
+      </div>
+    </div>
+  );
+}
 function activiteNecessiteCollation(nom, materiel) {
   const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (norm(nom).includes("collation")) return true;

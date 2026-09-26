@@ -2699,7 +2699,7 @@ ${fichesHtml}
 
   return (
     <div className="print-root max-w-4xl mx-auto px-4 py-8">
-      <button onClick={onBack} className="no-print flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#7C9070] mb-4">
+      <button onClick={onBack} className="no-print fixed bottom-6 left-6 z-50 bg-[#FBF8F2] border border-[#E3DACB] rounded-full px-4 py-2 shadow-md flex items-center gap-1.5 text-sm font-semibold text-[#7A7362] hover:text-[#7C9070] mb-4">
         <ChevronLeft size={16} /> Retour
       </button>
       {isMercredi && mercredis.length > 0 && (

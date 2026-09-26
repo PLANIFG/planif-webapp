@@ -3485,7 +3485,21 @@ function WeeklyGridTool({ initialData }) {
   <td style="padding:4px 0;color:#54634A;font-weight:700;">Thème : <span style="font-weight:400;color:#2B2A26;">${escapeHtml(theme) || "—"}</span></td>
 </tr></table>
 <table style="margin-top:16px;"><thead><tr><th style="text-align:left;padding:10px;background:#7C9070;color:white;font-size:11px;text-transform:uppercase;">Jour</th>${headerCells}</tr></thead><tbody>${rows}</tbody></table>
-${fichesHtml.join("")}
+              <div style="margin-top:20px;display:flex;gap:16px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:220px;">
+                  <h3 style="color:#54634A;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Matériel à préparer</h3>
+                  <div style="font-size:13px;color:#2B2A26;white-space:pre-line;">${escapeHtml(materielAPreparer || "—")}</div>
+                </div>
+                <div style="flex:1;min-width:220px;">
+                  <h3 style="color:#54634A;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Matériel à acheter</h3>
+                  <div style="font-size:13px;color:#2B2A26;white-space:pre-line;">${escapeHtml(materielAAcheter || "—")}</div>
+                </div>
+              </div>
+              <div style="margin-top:16px;">
+                <h3 style="color:#54634A;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Notes</h3>
+                <div style="font-size:13px;color:#2B2A26;white-space:pre-line;">${escapeHtml(notesSemaine || "—")}</div>
+              </div>
+              ${fichesHtml.join("")}
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
 </body></html>`;
 

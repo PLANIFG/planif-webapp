@@ -3011,6 +3011,9 @@ function WeeklyGridTool({ initialData }) {
   const [educatrice, setEducatrice] = useState(initialData?.educatrice || "");
   const [semaine, setSemaine] = useState(initialData?.semaine || "");
   const [groupeNom, setGroupeNom] = useState(initialData?.groupeNom || "");
+    const [materielAPreparer, setMaterielAPreparer] = useState(initialData?.materielAPreparer || "");
+  const [materielAAcheter, setMaterielAAcheter] = useState(initialData?.materielAAcheter || "");
+  const [notesSemaine, setNotesSemaine] = useState(initialData?.notesSemaine || "");
   const [wAges, setWAges] = useState(["4-6 ans", "7-9 ans", "10-12 ans"]);
   const [theme, setTheme] = useState(initialData?.theme || "");
 
@@ -3853,6 +3856,38 @@ ${fichesHtml.join("")}
                   ))}
                 </tbody>
               </table>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Matériel à préparer</h3>
+                  <textarea
+                    className="w-full text-sm p-3 rounded-xl border border-[#E3DACB] focus:outline-none"
+                    rows={4}
+                    placeholder="Un élément par ligne…"
+                    value={materielAPreparer}
+                    onChange={(e) => setMaterielAPreparer(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Matériel à acheter</h3>
+                  <textarea
+                    className="w-full text-sm p-3 rounded-xl border border-[#E3DACB] focus:outline-none"
+                    rows={4}
+                    placeholder="Un élément par ligne…"
+                    value={materielAAcheter}
+                    onChange={(e) => setMaterielAAcheter(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Notes</h3>
+                <textarea
+                  className="w-full text-sm p-3 rounded-xl border border-[#E3DACB] focus:outline-none"
+                  rows={3}
+                  placeholder="Notes…"
+                  value={notesSemaine}
+                  onChange={(e) => setNotesSemaine(e.target.value)}
+                />
+              </div>
             </div>
           )}
 

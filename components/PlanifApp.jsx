@@ -532,7 +532,6 @@ function activiteNecessiteCartes(materiel) {
 // illustrations) apparaît en plus de "cartes" — utilise alors les ~20
 // formes déjà dessinées dans l'app (bibliothèque de coloriage) plutôt que
 // du texte libre, puisque l'app ne peut pas générer de vraies images.
-function activiteNecessiteCartesIllustrees(materiel) {
  function activiteNecessiteCartesIllustrees(materiel) {
   return (materiel || []).some((m) => {
     const norm = String(m || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

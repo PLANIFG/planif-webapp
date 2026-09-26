@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
   Sparkles, Plus, Trash2, RefreshCw, Loader2, ChevronRight, ChevronLeft,
-  MapPin, Users, Wallet, ShoppingBag, Check, X, Pencil, PriFFnter,
+  MapPin, Users, Wallet, ShoppingBag, Check, X, Pencil, Printer,
   LayoutGrid, Eye, CalendarDays, GripVertical
 } from "lucide-react";
 

@@ -536,10 +536,11 @@ function activiteNecessiteCartes(materiel) {
 function activiteNecessiteCartesIllustrees(materiel) {
   return (materiel || []).some((m) => {
     const norm = String(m || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return norm.includes("carte") && norm.includes("illustr");
+    const estCarteIllustree = (norm.includes("carte") || norm.includes("carton")) && norm.includes("illustr");
+    const estAutreVisuel = norm.includes("image") || norm.includes("silhouette") || norm.includes("empreinte") || norm.includes("mue");
+    return estCarteIllustree || estAutreVisuel;
   });
 }
-
 function buildCartesPrompt({ theme, nomActivite }) {
   return `Tu prépares des cartes à découper imprimables pour une activité de service de garde en milieu scolaire.
 

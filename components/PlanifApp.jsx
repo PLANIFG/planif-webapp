@@ -2372,7 +2372,7 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDr
 
 // ================= APERÇU / IMPRESSION =================
 function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack,
-  bingoMots, setBingoMots, cartesItems, setCartesItems, cartesImages, setCartesImages, collationIdees, setCollationIdees, quizQuestions, setQuizQuestions, materielGenere, setMaterielGenere,
+  bingoMots, setBingoMots, cartesItems, setCartesItems, setCartesImages, collationIdees, setCollationIdees, quizQuestions, setQuizQuestions, materielGenere, setMaterielGenere,
 }) {
    const [savingBiblio, setSavingBiblio] = useState(false);
   const [biblioSaved, setBiblioSaved] = useState(false);
@@ -2905,7 +2905,7 @@ ${fichesHtml}
                   })),
                   transitionData: transitionEnabled ? transitionData : null,
                   
-                  bingoMots, cartesItems, cartesImages, collationIdees, quizQuestions, materielGenere,
+                  bingoMots, cartesItems, collationIdees, quizQuestions, materielGenere,
                 },
               });
             }
@@ -3944,7 +3944,7 @@ ${fichesHtml.join("")}
                       periodes: visiblePeriodes,
                       transitionData: transitionEnabled ? transitionData : null,
 
-                      bingoMots, cartesItems: cartesItemsWeek, cartesImages: cartesImagesWeek,
+                      bingoMots, cartesItems: cartesItemsWeek,
                       collationIdees: collationIdeesWeek, quizQuestions: quizQuestionsWeek, materielGenere: materielGenereWeek,
                     },
                   });

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import PlanifApp from "../components/PlanifApp";
+import MarketingHome from "../components/MarketingHome";
 
 export default function Home() {
   const [checking, setChecking] = useState(true);
@@ -12,7 +13,11 @@ export default function Home() {
     supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
       if (!data.session) {
-        window.location.href = "/login";
+        // Personne non connectée : on montre la page d'accueil publique
+        // (description, fonctionnalités, tarifs) plutôt que de rediriger
+        // tout de suite vers /login — les infos utiles doivent être
+        // visibles avant la connexion.
+        setChecking(false);
         return;
       }
       const { data: sub } = await supabase
@@ -33,7 +38,6 @@ export default function Home() {
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (!s) window.location.href = "/login";
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -46,7 +50,11 @@ export default function Home() {
     );
   }
 
-  if (!session || !subActive) return null; // redirection en cours
+  // Personne non connectée : page d'accueil publique (marketing).
+  if (!session) return <MarketingHome />;
 
-  return <PlanifApp />;
+  // Connectée et abonnée : l'app complète.
+  if (subActive) return <PlanifApp />;
+
+  return null; // redirection vers /subscribe en cours
 }

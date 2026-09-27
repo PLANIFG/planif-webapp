@@ -71,6 +71,8 @@ export default function SubscribePage() {
         <h1 className="text-2xl font-bold mb-1" style={{ color: "#2A4E3B" }}>Choisissez votre abonnement</h1>
         <p className="text-sm text-[#7A7362] mb-6">
           Accès complet à PLANIF. Essai gratuit de 7 jours (5 générations) pour essayer avant de vous engager.
+          Une carte est requise pour démarrer l'essai, mais elle n'est débitée qu'à la fin des 7 jours si vous
+          ne l'annulez pas.
         </p>
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
         <div className="grid gap-4">

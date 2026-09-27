@@ -125,6 +125,20 @@ export default function MarketingHome() {
         .planif-accueil .carte-fonction h3{ font-size:16px; font-weight:700; margin-bottom:8px; color: var(--dore-fonce); }
         .planif-accueil .carte-fonction p{ font-size:14px; color: #6b7d72; line-height:1.55; }
 
+        .planif-accueil .section-demo{ padding: 20px 0 60px; }
+        .planif-accueil .demo-mise-en-page{
+          display:flex; align-items:center; justify-content:center; gap: 44px; flex-wrap:wrap;
+        }
+        .planif-accueil .demo-texte{ max-width: 380px; }
+        .planif-accueil .demo-texte h2{ font-size: clamp(21px,2.8vw,27px); font-weight:700; color: var(--dore-fonce); margin-bottom:14px; }
+        .planif-accueil .demo-texte p{ color:#6b7d72; font-size:15px; margin-bottom:0; }
+        .planif-accueil .demo-telephone{
+          width: 260px; border-radius: 30px; overflow:hidden; background:#000;
+          box-shadow: 0 40px 70px -30px rgba(58,70,51,0.4); border: 6px solid var(--dore-fonce);
+          flex-shrink:0;
+        }
+        .planif-accueil .demo-telephone video{ width:100%; display:block; aspect-ratio: 9/19.5; object-fit:cover; }
+
         .planif-accueil .bandeau-mission{
           background: var(--encre); color: var(--papier); border-radius: 20px; padding: 44px 38px;
           text-align:center;
@@ -171,6 +185,8 @@ export default function MarketingHome() {
           .planif-accueil .grille-tarifs{ grid-template-columns: 1fr; }
           .planif-accueil .bandeau-mission{ padding: 32px 22px; border-radius:14px; }
           .planif-accueil .footer-haut{ flex-direction:column; }
+          .planif-accueil .demo-mise-en-page{ flex-direction:column; text-align:center; }
+          .planif-accueil .demo-texte{ max-width: 100%; }
         }
       `}</style>
 
@@ -182,6 +198,7 @@ export default function MarketingHome() {
             </a>
             <nav className="nav-liens">
               <a href="#fonctionnalites">Fonctionnalités</a>
+              <a href="#demo">Démo</a>
               <a href="#tarifs">Tarifs</a>
               <a href="#apropos">À propos</a>
               <a href="/login" className="btn-nav-connexion">Connexion</a>
@@ -196,6 +213,7 @@ export default function MarketingHome() {
           </div>
           <div className={`conteneur menu-mobile ${menuOuvert ? "ouvert" : ""}`}>
             <a href="#fonctionnalites" onClick={() => setMenuOuvert(false)}>Fonctionnalités</a>
+            <a href="#demo" onClick={() => setMenuOuvert(false)}>Démo</a>
             <a href="#tarifs" onClick={() => setMenuOuvert(false)}>Tarifs</a>
             <a href="#apropos" onClick={() => setMenuOuvert(false)}>À propos</a>
             <a href="/login" className="btn-nav-connexion">Connexion</a>
@@ -261,6 +279,25 @@ export default function MarketingHome() {
                 <div className="icone-img"><img src="/accueil/biblio.jpg" alt="Bibliothèque de planifications dans PLANIF" /></div>
                 <h3>Bibliothèque personnelle</h3>
                 <p>Retrouvez, rouvrez et modifiez vos planifications précédentes en un instant.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="demo" className="section-demo">
+          <div className="conteneur">
+            <div className="demo-mise-en-page">
+              <div className="demo-telephone">
+                <video
+                  src="/accueil/demo.mp4"
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+              </div>
+              <div className="demo-texte">
+                <h2>Voyez PLANIF en action</h2>
+                <p>Un aperçu rapide de la navigation dans l'application : comment générer une planification, ajuster le matériel et retrouver ses activités en un coup d'œil.</p>
               </div>
             </div>
           </div>

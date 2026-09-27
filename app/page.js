@@ -4,20 +4,24 @@ import { supabase } from "../lib/supabaseClient";
 import PlanifApp from "../components/PlanifApp";
 import MarketingHome from "../components/MarketingHome";
 
+// Si un cookie de connexion Supabase existe, on masque la page d'accueil
+// publique dès le chargement (avant même que le JavaScript démarre) et on
+// affiche « Chargement… » : les personnes connectées ne voient donc pas la
+// page d'accueil clignoter avant d'entrer dans l'app. Google et les
+// visiteuses, eux, reçoivent directement la page d'accueil complète.
+const SESSION_SCRIPT = `try{if(/(^|;\\s*)sb-[^=]*-auth-token/.test(document.cookie)){document.documentElement.classList.add('planif-session')}}catch(e){}`;
+const SESSION_CSS = `.pl-boot{display:none}.planif-session .pl-boot{display:flex}.planif-session .pl-accueil{display:none}`;
+
 export default function Home() {
-  const [checking, setChecking] = useState(true);
-  const [session, setSession] = useState(null);
   const [subActive, setSubActive] = useState(false);
 
   useEffect(() => {
+    const showHome = () => document.documentElement.classList.remove("planif-session");
+
     supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      if (!data.session) {
-        // Personne non connectée : on montre la page d'accueil publique
-        // (description, fonctionnalités, tarifs) plutôt que de rediriger
-        // tout de suite vers /login — les infos utiles doivent être
-        // visibles avant la connexion.
-        setChecking(false);
+      if (!data?.session) {
+        // Personne non connectée : page d'accueil publique.
+        showHome();
         return;
       }
       const { data: sub } = await supabase
@@ -26,35 +30,38 @@ export default function Home() {
         .eq("user_id", data.session.user.id)
         .maybeSingle();
       // "trialing" doit être autorisé — sinon toute personne en plein essai
-      // gratuit de 7 jours (le statut normal juste après un paiement) se
-      // faisait renvoyer vers la page d'abonnement au lieu d'entrer dans l'app.
+      // gratuit de 7 jours se ferait renvoyer vers la page d'abonnement.
       if (sub?.status === "active" || sub?.status === "past_due" || sub?.status === "trialing") {
         setSubActive(true);
       } else {
         window.location.href = "/subscribe";
-        return;
       }
-      setChecking(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+    }).catch(showHome); // session illisible ou expirée : page d'accueil
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setSubActive(false);
+        showHome();
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#FBF8F2" }}>
-        <p className="text-sm text-[#7A7362]">Chargement…</p>
-      </div>
-    );
-  }
-
-  // Personne non connectée : page d'accueil publique (marketing).
-  if (!session) return <MarketingHome />;
-
   // Connectée et abonnée : l'app complète.
   if (subActive) return <PlanifApp />;
 
-  return null; // redirection vers /subscribe en cours
+  // Tout le monde d'autre (et Google) : la page d'accueil publique,
+  // présente dès le HTML initial pour être bien lue par les moteurs de recherche.
+  return (
+    <>
+      <script dangerouslySetInnerHTML={{ __html: SESSION_SCRIPT }} />
+      <style dangerouslySetInnerHTML={{ __html: SESSION_CSS }} />
+      <div className="pl-boot min-h-screen items-center justify-center" style={{ background: "#FBF8F2" }}>
+        <p className="text-sm text-[#7A7362]">Chargement…</p>
+      </div>
+      <div className="pl-accueil">
+        <MarketingHome />
+      </div>
+    </>
+  );
 }

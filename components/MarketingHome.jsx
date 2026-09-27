@@ -11,7 +11,7 @@ export default function MarketingHome() {
         href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap"
         rel="stylesheet"
       />
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .planif-accueil{
           --papier: #FBF8F2;
           --carte: #FFFFFF;
@@ -188,7 +188,7 @@ export default function MarketingHome() {
           .planif-accueil .demo-mise-en-page{ flex-direction:column; text-align:center; }
           .planif-accueil .demo-texte{ max-width: 100%; }
         }
-      `}</style>
+      ` }} />
 
       <div className="planif-accueil">
         <header>

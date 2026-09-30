@@ -39,9 +39,15 @@ export async function POST(request) {
   // double pour la même personne.
   const { data: existingSub } = await db
     .from("subscriptions")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, stripe_subscription_id, status")
     .eq("user_id", userId)
     .maybeSingle();
+
+  // Abonnement Stripe déjà en cours (carte entrée) : on ne touche pas à
+  // sa ligne, pour ne pas écraser son statut ni remettre son compteur à 0.
+  const hasLiveSubscription =
+    !!existingSub?.stripe_subscription_id &&
+    ["active", "trialing", "past_due"].includes(existingSub?.status);
 
   let customerId = existingSub?.stripe_customer_id || null;
 
@@ -64,15 +70,17 @@ export async function POST(request) {
     customerId = customer.id;
   }
 
-  // Pré-initialise la ligne subscriptions avec le plafond d'essai (5),
-  // pour qu'un quota existe déjà dès la création de la session Stripe —
-  // avant même que le webhook checkout.session.completed ne se déclenche.
+  // Pré-initialise la ligne subscriptions avec le plafond d'essai (5) et les
+  // dates, mais avec le statut "incomplete" : la personne n'a pas encore
+  // entré sa carte. C'est le webhook checkout.session.completed qui passera
+  // le statut à "trialing" une fois le paiement réellement complété — sinon,
+  // quelqu'un qui ferme la page Stripe garderait l'accès sans carte.
   const now = new Date();
   const trialEndDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  await db.from("subscriptions").upsert({
+  if (!hasLiveSubscription) await db.from("subscriptions").upsert({
     user_id: userId,
     plan,
-    status: "trialing",
+    status: "incomplete",
     stripe_customer_id: customerId,
     generation_limit: GENERATION_LIMITS.trial,
     generations_used: 0,

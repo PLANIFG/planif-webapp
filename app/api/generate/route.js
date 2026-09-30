@@ -40,6 +40,10 @@ export async function POST(request) {
     let message;
     if (quota.error) {
       message = "Impossible de vérifier ton quota pour le moment. Réessaie dans un instant.";
+    } else if ((quota.generationsUsed ?? 0) < (quota.generationLimit ?? 0)) {
+      // Refusé alors qu'il reste des crédits : l'abonnement n'est pas
+      // complété (aucune carte entrée) ou n'est plus actif.
+      message = "Ton abonnement n'est pas actif. Complète ton abonnement pour générer des activités.";
     } else {
       // On valide que la date est réelle (ni vide, ni 1970-01-01, l'artefact
       // classique d'une date "zéro" en JavaScript) avant de l'afficher.

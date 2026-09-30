@@ -24,14 +24,30 @@ export default function Home() {
         showHome();
         return;
       }
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("status")
-        .eq("user_id", data.session.user.id)
-        .maybeSingle();
-      // "trialing" doit être autorisé — sinon toute personne en plein essai
-      // gratuit de 7 jours se ferait renvoyer vers la page d'abonnement.
-      if (sub?.status === "active" || sub?.status === "past_due" || sub?.status === "trialing") {
+      // Accès seulement avec un vrai abonnement Stripe (carte entrée) et un
+      // statut valide. "trialing" doit être autorisé — sinon toute personne
+      // en plein essai gratuit de 7 jours serait renvoyée vers l'abonnement.
+      const isValid = (sub) =>
+        !!sub?.stripe_subscription_id &&
+        ["active", "past_due", "trialing"].includes(sub?.status);
+      const readSub = async () => {
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("status, stripe_subscription_id")
+          .eq("user_id", data.session.user.id)
+          .maybeSingle();
+        return sub;
+      };
+      let sub = await readSub();
+      // Retour de Stripe après paiement : le webhook peut arriver quelques
+      // secondes après la personne. On patiente un peu avant de la renvoyer
+      // vers la page d'abonnement.
+      const justPaid = new URLSearchParams(window.location.search).get("abonnement") === "succes";
+      for (let i = 0; justPaid && !isValid(sub) && i < 8; i++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        sub = await readSub();
+      }
+      if (isValid(sub)) {
         setSubActive(true);
       } else {
         window.location.href = "/subscribe";

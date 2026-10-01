@@ -1,7 +1,13 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
-import { tryConsumeGeneration, refundGeneration, STREAM_ERROR_MARKER } from "../../../lib/generationLimits";
+import {
+  tryConsumeGeneration,
+  tryConsumeExtra,
+  refundGeneration as refundCredit,
+  STREAM_ERROR_MARKER,
+  EXTRAS_DAILY_LIMIT,
+} from "../../../lib/generationLimits";
 
 // Cette route tourne côté serveur (jamais dans le navigateur). C'est ici,
 // et seulement ici, que la vraie clé API Anthropic est utilisée — elle
@@ -39,7 +45,7 @@ export async function POST(request) {
   } catch (e) {
     return Response.json({ error: "Corps de requête invalide." }, { status: 400 });
   }
-  const { prompt, prompts, maxTokens = 3000 } = body || {};
+  const { prompt, prompts, maxTokens = 3000, extra = false } = body || {};
   // Mode « lot » : plusieurs petits prompts lancés en parallèle pour UNE seule
   // action de la personne (ex. la grille de la semaine, une case par appel).
   // Un seul crédit est compté, et chaque appel reste court, bien sous la
@@ -61,7 +67,31 @@ export async function POST(request) {
   // Atomique côté DB : deux clics simultanés ne peuvent pas tous les deux passer
   // si un seul crédit reste au compteur.
   const db = supabaseAdmin();
-  const quota = await tryConsumeGeneration(db, user.id);
+
+  // Extras générés automatiquement (bingo, quiz, cartes, collation, matériel,
+  // fiches de transition) : gratuits pour la personne — seul le clic sur
+  // « Générer » compte un crédit. Réservés aux abonnements actifs ou en essai,
+  // avec un plafond quotidien pour éviter les abus.
+  const isExtra = extra === true && !isBatch;
+  if (isExtra) {
+    const ok = await tryConsumeExtra(db, user.id);
+    if (!ok.allowed) {
+      return Response.json(
+        {
+          error: ok.error
+            ? "Impossible de vérifier ton compte pour le moment."
+            : `Limite quotidienne de ${EXTRAS_DAILY_LIMIT} extras atteinte, ou abonnement inactif.`,
+        },
+        { status: 429 }
+      );
+    }
+  }
+  // Aucun crédit à rendre pour un extra : il n'en a pas coûté.
+  const refundGeneration = isExtra ? async () => {} : refundCredit;
+
+  const quota = isExtra
+    ? { allowed: true }
+    : await tryConsumeGeneration(db, user.id);
   if (!quota.allowed) {
     let message;
     if (quota.error) {

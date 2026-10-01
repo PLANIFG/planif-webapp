@@ -2736,13 +2736,13 @@ ${fichesHtml}
 
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${(theme || "planification").replace(/[^a-z0-9]+/gi, "-")}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    // On ouvre dans un nouvel onglet plutôt que de forcer un téléchargement :
+    // le téléchargement forcé d'un .html via <a download> est peu fiable sur
+    // Safari mobile (iOS), où ça peut ne rien faire du tout. Ouvrir l'onglet
+    // laisse la personne utiliser le menu de partage de son navigateur pour
+    // imprimer ou enregistrer en PDF, ce que le message affiché propose déjà.
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   return (
@@ -3577,13 +3577,10 @@ function WeeklyGridTool({ initialData }) {
 
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${(theme || groupeNom || semaine || "grille-hebdomadaire").replace(/[^a-z0-9]+/gi, "-")}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    // Même correctif que pour la journée : on ouvre un onglet au lieu de
+    // forcer un téléchargement, peu fiable sur Safari mobile.
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   const fiches = [];

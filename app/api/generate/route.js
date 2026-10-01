@@ -39,8 +39,21 @@ export async function POST(request) {
   } catch (e) {
     return Response.json({ error: "Corps de requête invalide." }, { status: 400 });
   }
-  const { prompt, maxTokens = 3000 } = body || {};
-  if (!prompt || typeof prompt !== "string") {
+  const { prompt, prompts, maxTokens = 3000 } = body || {};
+  // Mode « lot » : plusieurs petits prompts lancés en parallèle pour UNE seule
+  // action de la personne (ex. la grille de la semaine, une case par appel).
+  // Un seul crédit est compté, et chaque appel reste court, bien sous la
+  // limite de temps de Netlify.
+  const isBatch = Array.isArray(prompts);
+  if (isBatch) {
+    if (
+      prompts.length === 0 ||
+      prompts.length > 20 ||
+      !prompts.every((p) => typeof p === "string" && p.length > 0)
+    ) {
+      return Response.json({ error: "Le champ 'prompts' est invalide." }, { status: 400 });
+    }
+  } else if (!prompt || typeof prompt !== "string") {
     return Response.json({ error: "Le champ 'prompt' est requis." }, { status: 400 });
   }
 
@@ -76,6 +89,44 @@ export async function POST(request) {
       },
       { status: 429 } // 429 = Too Many Requests, code standard pour un quota dépassé
     );
+  }
+
+  if (isBatch) {
+    const perCallTokens = Math.min(Number(maxTokens) || 1500, 2000);
+    try {
+      const texts = await Promise.all(
+        prompts.map(async (p) => {
+          const r = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model: "claude-sonnet-5",
+              max_tokens: perCallTokens,
+              messages: [{ role: "user", content: p }],
+            }),
+          });
+          const data = await r.json().catch(() => null);
+          if (!r.ok) throw new Error(data?.error?.message || `Erreur API Anthropic (${r.status})`);
+          const text = (data?.content || []).map((b) => b.text || "").join("\n").trim();
+          if (!text) throw new Error("Réponse vide de l'IA.");
+          return text;
+        })
+      );
+      return Response.json({
+        texts,
+        quotaInfo: { generationsUsed: quota.generationsUsed, generationLimit: quota.generationLimit },
+      });
+    } catch (e) {
+      await refundGeneration(db, user.id);
+      return Response.json(
+        { error: `${e.message || "La génération a échoué."} Ton crédit t'a été remis, tu peux réessayer.` },
+        { status: 502 }
+      );
+    }
   }
 
   // Étape 3 — appel à Anthropic EN STREAMING. Netlify coupe une réponse

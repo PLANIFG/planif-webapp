@@ -948,7 +948,13 @@ function formatDateFr(date) {
 // Appelle notre propre route backend sécurisée (/api/generate) au lieu
 // d'appeler Anthropic directement — la vraie clé API ne quitte jamais le
 // serveur. C'est le changement essentiel par rapport à l'artefact Claude.
-async function askClaudeOnce(promptText, maxTokens) {
+// Doit correspondre à STREAM_ERROR_MARKER dans lib/generationLimits.js.
+const STREAM_ERROR_MARKER = "\n[[PLANIF_ERREUR]]";
+
+// Appel commun à /api/generate. Le serveur répond en JSON pour les erreurs
+// (quota, connexion, panne Anthropic) et en texte brut, en streaming, pour
+// une génération réussie — le streaming évite la coupure de Netlify à ~26 s.
+async function callGenerate(promptText, maxTokens) {
   let response;
   try {
     response = await fetch("/api/generate", {
@@ -957,27 +963,47 @@ async function askClaudeOnce(promptText, maxTokens) {
       body: JSON.stringify({ prompt: promptText, maxTokens }),
     });
   } catch (e) {
-    throw new Error(`[appel réseau] ${e.name || "Error"}: ${e.message}`);
+    const err = new Error(`[appel réseau] ${e.name || "Error"}: ${e.message}`);
+    err.status = 0; // pas de relance automatique : chaque essai coûte un crédit
+    throw err;
   }
   let bodyText;
   try {
     bodyText = await response.text();
   } catch (e) {
-    throw new Error(`[lecture texte] ${e.name || "Error"}: ${e.message}`);
-  }
-  let data;
-  try {
-    data = JSON.parse(bodyText);
-  } catch (e) {
-    const preview = bodyText.length ? bodyText.slice(0, 100).replace(/\s+/g, " ") : "(réponse vide)";
-    throw new Error(`[réponse non-JSON, ${bodyText.length} car.] "${preview}"`);
-  }
-  if (!response.ok) {
-    const err = new Error(data?.error || `Erreur réseau/API (${response.status})`);
-    err.status = response.status;
+    const err = new Error(`[lecture texte] ${e.name || "Error"}: ${e.message}`);
+    err.status = 0;
     throw err;
   }
-  const text = data.text || "";
+  const isJson = (response.headers.get("content-type") || "").includes("application/json");
+  if (!response.ok || isJson) {
+    let data = null;
+    try {
+      data = JSON.parse(bodyText);
+    } catch (_) {}
+    const preview = bodyText.length ? bodyText.slice(0, 100).replace(/\s+/g, " ") : "(réponse vide)";
+    const err = new Error(data?.error || `Erreur réseau/API (${response.status}) ${preview}`);
+    err.status = response.status || 0;
+    throw err;
+  }
+  const markerAt = bodyText.indexOf(STREAM_ERROR_MARKER);
+  if (markerAt !== -1) {
+    const err = new Error(
+      `${bodyText.slice(markerAt + STREAM_ERROR_MARKER.length)} Ton crédit t'a été remis, tu peux réessayer.`
+    );
+    err.status = 502;
+    throw err;
+  }
+  if (!bodyText.trim()) {
+    const err = new Error("Réponse vide du serveur. Réessaie dans un instant.");
+    err.status = 502;
+    throw err;
+  }
+  return bodyText;
+}
+
+async function askClaudeOnce(promptText, maxTokens) {
+  const text = await callGenerate(promptText, maxTokens);
   try {
     return extractJson(text);
   } catch (e) {
@@ -985,29 +1011,18 @@ async function askClaudeOnce(promptText, maxTokens) {
   }
 }
 
-// Retries once on a parsing/format failure (transient formatting hiccups
-// from the model), mais jamais sur une erreur HTTP (réseau, panne serveur,
-// ou quota dépassé) — celles-là échouent immédiatement.
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Message clair pour l'interface : quand c'est un quota dépassé (429), le
-// message vient déjà du serveur, prêt à afficher — pas besoin de le préfixer
-// avec "La génération a échoué", ce qui sonnerait comme un bug plutôt qu'une
-// limite normale.
-function friendlyGenerationError(e, fallbackPrefix = "La génération a échoué") {
-  if (e?.status === 429) return e.message;
-  return `${fallbackPrefix} : ${e?.message || "erreur inconnue"}`;
-}
-
+// Ne relance qu'une seule fois, et seulement si la réponse est arrivée mais
+// que le JSON était mal formé. Toute autre erreur (réseau, délai, quota,
+// panne) échoue tout de suite : avant, un seul clic pouvait coûter 3 crédits.
 async function askClaude(promptText, maxTokens = 3000) {
   let lastErr;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await sleep(900 * attempt);
     try {
       return await askClaudeOnce(promptText, maxTokens);
     } catch (e) {
       lastErr = e;
-      if (e.status) throw e;
+      if (e.status !== undefined) throw e;
     }
   }
   throw lastErr;
@@ -1017,45 +1032,17 @@ async function askClaude(promptText, maxTokens = 3000) {
 // text instead of parsing JSON — used for short free-text generations
 // like an "amorce" (activity intro/hook), where JSON would be overkill.
 async function askClaudeTextOnce(promptText, maxTokens) {
-  let response;
-  try {
-    response = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: promptText, maxTokens }),
-    });
-  } catch (e) {
-    throw new Error(`[appel réseau] ${e.name || "Error"}: ${e.message}`);
-  }
-  let bodyText;
-  try {
-    bodyText = await response.text();
-  } catch (e) {
-    throw new Error(`[lecture texte] ${e.name || "Error"}: ${e.message}`);
-  }
-  let data;
-  try {
-    data = JSON.parse(bodyText);
-  } catch (e) {
-    const preview = bodyText.length ? bodyText.slice(0, 100).replace(/\s+/g, " ") : "(réponse vide)";
-    throw new Error(`[réponse non-JSON, ${bodyText.length} car.] "${preview}"`);
-  }
-  if (!response.ok) {
-    const err = new Error(data?.error || `Erreur réseau/API (${response.status})`);
-    err.status = response.status;
-    throw err;
-  }
-  return (data.text || "").trim();
+  return (await callGenerate(promptText, maxTokens)).trim();
 }
 async function askClaudeText(promptText, maxTokens = 400) {
   let lastErr;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 1; attempt++) {
     if (attempt > 0) await sleep(900 * attempt);
     try {
       return await askClaudeTextOnce(promptText, maxTokens);
     } catch (e) {
       lastErr = e;
-      if (e.status) throw e;
+      if (e.status !== undefined) throw e;
     }
   }
   throw lastErr;

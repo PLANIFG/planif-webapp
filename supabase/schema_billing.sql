@@ -24,3 +24,22 @@ create policy "Chacun voit son propre abonnement"
 create policy "Le serveur gère les abonnements"
   on public.subscriptions for all
   using (auth.role() = 'service_role');
+
+-- Rend un crédit quand une génération échoue côté serveur (panne Anthropic,
+-- coupure, réponse vide). Appelée seulement par la route /api/generate
+-- avec la clé service_role.
+create or replace function public.refund_generation(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+begin
+  update subscriptions
+  set generations_used = greatest(generations_used - 1, 0)
+  where user_id = p_user_id;
+end;
+$$;
+
+revoke all on function public.refund_generation(uuid) from public, anon, authenticated;
+grant execute on function public.refund_generation(uuid) to service_role;

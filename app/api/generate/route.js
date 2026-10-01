@@ -1,7 +1,7 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
-import { tryConsumeGeneration } from "../../../lib/generationLimits";
+import { tryConsumeGeneration, refundGeneration, STREAM_ERROR_MARKER } from "../../../lib/generationLimits";
 
 // Cette route tourne côté serveur (jamais dans le navigateur). C'est ici,
 // et seulement ici, que la vraie clé API Anthropic est utilisée — elle
@@ -29,6 +29,19 @@ export async function POST(request) {
       { error: "Vous devez être connectée pour générer du contenu." },
       { status: 401 }
     );
+  }
+
+  // Lire la requête AVANT de consommer un crédit : une requête mal formée
+  // ne doit rien coûter.
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return Response.json({ error: "Corps de requête invalide." }, { status: 400 });
+  }
+  const { prompt, maxTokens = 3000 } = body || {};
+  if (!prompt || typeof prompt !== "string") {
+    return Response.json({ error: "Le champ 'prompt' est requis." }, { status: 400 });
   }
 
   // Étape 2 — vérifier ET réserver une génération AVANT l'appel coûteux à Anthropic.
@@ -65,19 +78,13 @@ export async function POST(request) {
     );
   }
 
-  let body;
+  // Étape 3 — appel à Anthropic EN STREAMING. Netlify coupe une réponse
+  // normale après ~26 s, mais laisse jusqu'à 60 s à une réponse en streaming.
+  // Les grilles de la semaine prennent souvent plus de 26 s : sans streaming,
+  // la personne recevait une réponse vide ET perdait un crédit.
+  let upstream;
   try {
-    body = await request.json();
-  } catch (e) {
-    return Response.json({ error: "Corps de requête invalide." }, { status: 400 });
-  }
-  const { prompt, maxTokens = 3000 } = body || {};
-  if (!prompt || typeof prompt !== "string") {
-    return Response.json({ error: "Le champ 'prompt' est requis." }, { status: 400 });
-  }
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    upstream = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -87,28 +94,85 @@ export async function POST(request) {
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: maxTokens,
+        stream: true,
         messages: [{ role: "user", content: prompt }],
       }),
     });
-    const data = await response.json();
-    if (!response.ok) {
-      return Response.json(
-        { error: data?.error?.message || `Erreur API Anthropic (${response.status})` },
-        { status: response.status }
-      );
-    }
-    const text = (data.content || []).map((b) => b.text || "").join("\n");
-    return Response.json({
-      text,
-      quotaInfo: {
-        generationsUsed: quota.generationsUsed,
-        generationLimit: quota.generationLimit,
-      },
-    });
   } catch (e) {
-    // Note : le quota a déjà été décompté même si l'appel Anthropic échoue ici
-    // (ex. panne réseau). C'est voulu — ça évite qu'une personne mal intentionnée
-    // multiplie les appels qui échouent volontairement pour contourner le compteur.
+    await refundGeneration(db, user.id);
     return Response.json({ error: e.message || "Erreur réseau vers Anthropic." }, { status: 502 });
   }
+
+  if (!upstream.ok || !upstream.body) {
+    // Échec côté Anthropic (surcharge, panne…) : la personne n'y est pour
+    // rien, on lui rend son crédit.
+    await refundGeneration(db, user.id);
+    let message = `Erreur API Anthropic (${upstream.status})`;
+    try {
+      const data = await upstream.json();
+      message = data?.error?.message || message;
+    } catch (_) {}
+    return Response.json({ error: message }, { status: upstream.status || 502 });
+  }
+
+  // On relaie seulement le texte généré au navigateur, au fur et à mesure.
+  // En cas d'erreur en cours de route, on rend le crédit et on ajoute un
+  // marqueur d'erreur que le client reconnaît (STREAM_ERROR_MARKER).
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = upstream.body.getReader();
+      let buffer = "";
+      let gotText = false;
+      let finished = false;
+      let failure = null;
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith("data:")) continue;
+            let evt;
+            try {
+              evt = JSON.parse(line.slice(5).trim());
+            } catch (_) {
+              continue;
+            }
+            if (evt.type === "content_block_delta" && evt.delta?.type === "text_delta") {
+              gotText = true;
+              controller.enqueue(encoder.encode(evt.delta.text));
+            } else if (evt.type === "message_stop") {
+              finished = true;
+            } else if (evt.type === "error") {
+              failure = evt.error?.message || "Erreur Anthropic pendant la génération.";
+            }
+          }
+        }
+      } catch (e) {
+        failure = e.message || "Connexion interrompue pendant la génération.";
+      }
+      if (!failure && !finished) failure = "La génération a été interrompue avant la fin.";
+      if (failure) {
+        await refundGeneration(db, user.id);
+        controller.enqueue(encoder.encode(`${STREAM_ERROR_MARKER}${failure}`));
+      } else if (!gotText) {
+        await refundGeneration(db, user.id);
+        controller.enqueue(encoder.encode(`${STREAM_ERROR_MARKER}Réponse vide de l'IA.`));
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Generations-Used": String(quota.generationsUsed ?? ""),
+      "X-Generation-Limit": String(quota.generationLimit ?? ""),
+    },
+  });
 }

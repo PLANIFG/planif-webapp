@@ -4084,6 +4084,35 @@ function WeeklyGridTool({ initialData }) {
   );
 }
 
+// Les anciennes planifications sauvegardées stockaient parfois le matériel
+// et le déroulement d'une activité sous forme de texte brut plutôt qu'une
+// liste. Le reste du code suppose maintenant toujours des listes (.map,
+// .join, .filter) — sans cette normalisation, ouvrir une vieille
+// planification depuis la bibliothèque fait planter toute la page.
+function versListe(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === "string" && v.trim()) return v.split(/\r?\n/).filter((l) => l.trim());
+  return [];
+}
+function normaliserPayloadBiblio(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  const p = { ...payload };
+  if (p.kept) {
+    p.kept = versListe(p.kept).map((a) => (a && typeof a === "object" ? {
+      ...a,
+      materiel: versListe(a.materiel),
+      deroulement: versListe(a.deroulement),
+    } : a));
+  }
+  if (p.cells && typeof p.cells === "object") {
+    p.cells = Object.fromEntries(Object.entries(p.cells).map(([k, cell]) => [
+      k,
+      cell && typeof cell === "object" ? { ...cell, materiel: versListe(cell.materiel) } : cell,
+    ]));
+  }
+  return p;
+}
+
 // ================= BIBLIOTHÈQUE (activités sauvegardées) =================
 function BibliothequeView({ onBack, onResumeJournee, onResumeSemaine }) {
   const [libraryName, setLibraryName] = useState("Ma bibliothèque");
@@ -4124,7 +4153,7 @@ function BibliothequeView({ onBack, onResumeJournee, onResumeSemaine }) {
       const { data: settings } = await supabase.from("user_settings").select("library_name").eq("user_id", user.id).maybeSingle();
       if (settings?.library_name) setLibraryName(settings.library_name);
       const { data: libItems } = await supabase.from("library_items").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-      setItems(libItems || []);
+      setItems((libItems || []).map((it) => ({ ...it, payload: normaliserPayloadBiblio(it.payload) })));
       setLoading(false);
     })();
   }, []);

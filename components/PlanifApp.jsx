@@ -1048,6 +1048,52 @@ async function askClaudeText(promptText, maxTokens = 400) {
   throw lastErr;
 }
 
+// Envoie plusieurs petits prompts en un seul appel (un seul crédit). Le
+// serveur les lance en parallèle : chacun reste rapide. Retourne le JSON
+// extrait de chaque réponse, dans le même ordre que les prompts.
+async function askClaudeBatch(prompts, maxTokens = 1500) {
+  let response;
+  try {
+    response = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompts, maxTokens }),
+    });
+  } catch (e) {
+    const err = new Error(`[appel réseau] ${e.name || "Error"}: ${e.message}`);
+    err.status = 0;
+    throw err;
+  }
+  const bodyText = await response.text().catch(() => "");
+  let data = null;
+  try {
+    data = JSON.parse(bodyText);
+  } catch (_) {}
+  if (!response.ok || !data) {
+    const err = new Error(data?.error || `Erreur réseau/API (${response.status}). Réessaie dans un instant.`);
+    err.status = response.status || 0;
+    throw err;
+  }
+  return (data.texts || []).map((t) => {
+    try {
+      return extractJson(t);
+    } catch (e) {
+      return null; // une case mal formée n'annule pas toute la semaine
+    }
+  });
+}
+
+// Types d'activités en rotation, pour que les cases générées séparément
+// restent variées sur la semaine.
+const WEEK_VARIETY = [
+  "un jeu actif ou sportif",
+  "un bricolage ou une activité d'arts plastiques",
+  "un jeu coopératif en équipe",
+  "une activité calme de langage ou d'expression (conte, devinettes, théâtre)",
+  "un petit défi scientifique ou de réflexion",
+  "une activité musicale ou de danse",
+];
+
 function buildAmorcePrompt({ nom, age, lieu, deroulement }) {
   return `Tu es éducateur/éducatrice en service de garde en milieu scolaire. Tu dois animer l'activité suivante avec un groupe d'enfants et tu veux une courte amorce pour bien la présenter et capter leur attention.
 
@@ -2929,7 +2975,7 @@ const WEEKLY_DEFAULT_PERIODES = ["Midi"];
 const weeklyCellKey = (jour, periode) => `${jour}__${periode}`;
 const weeklyEmptyCell = () => ({ activite: "", local: "", domaines: [], remarques: "", description: "", materiel: [], amorce: "", duree: "", resume: "" });
 
-function weeklyBuildWeekPrompt({ theme, ages, cellsToFill }) {
+function weeklyBuildWeekPrompt({ theme, ages, cellsToFill, variety }) {
   const isMultiAge = ages && ages.length === AGES.length && AGES.every((a) => ages.includes(a));
   const multiAgeInstruction = isMultiAge
     ? `\nIMPORTANT : les 3 groupes d'âge sont sélectionnés ensemble — chaque activité est donc MULTI-ÂGE (4-12 ans réunis). Pour chaque case, choisis UNE approche différente parmi celles-ci (ne répète pas la même approche à deux cases de suite) :\n${MULTIAGE_APPROACHES.map((a, i) => `${i + 1}. ${a}`).join("\n")}\n`
@@ -2944,7 +2990,7 @@ Pour chaque case suivante (jour + période), propose UNE activité simple et cou
 IMPORTANT : pour toute case dont le lieu est "Cuisine" (que ce soit le lieu déjà indiqué ou celui que tu choisis), l'activité est une recette — dans le champ "materiel" de cette case, écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine"), pas seulement le nom de l'ingrédient.
 Pour chaque activité, écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité.
 Pour chaque activité, écris aussi un court résumé (une seule phrase, environ 10-15 mots) décrivant simplement en quoi consiste l'activité, pour un aperçu rapide.
-Cases à remplir : ${JSON.stringify(cellsToFill)}
+${variety ? `Pour varier la semaine (les autres cases sont générées séparément), propose ici ${variety}.\n` : ""}Cases à remplir : ${JSON.stringify(cellsToFill)}
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, format exact :
 [
@@ -3288,7 +3334,31 @@ function WeeklyGridTool({ initialData }) {
       if (selectedPeriodes.length === 0) throw new Error("Sélectionnez au moins une période.");
       const cellsToFill = [];
       jours.forEach((j) => selectedPeriodes.forEach((p) => cellsToFill.push({ jour: j.name, periode: p, lieu: j.lieu || undefined })));
-      const raw = await askClaude(weeklyBuildWeekPrompt({ theme, ages: wAges, cellsToFill }), Math.min(8000, 1200 + cellsToFill.length * 500));
+      // Une case par appel, toutes en parallèle (un seul crédit) : chaque appel
+      // prend quelques secondes au lieu d'un seul long appel qui dépassait la
+      // limite de temps de Netlify.
+      const offset = Math.floor(Math.random() * WEEK_VARIETY.length);
+      const results = await askClaudeBatch(
+        cellsToFill.map((cell, i) =>
+          weeklyBuildWeekPrompt({
+            theme,
+            ages: wAges,
+            cellsToFill: [cell],
+            variety: WEEK_VARIETY[(offset + i) % WEEK_VARIETY.length],
+          })
+        ),
+        1500
+      );
+      const raw = results.flatMap((r, i) =>
+        (Array.isArray(r) ? r : r ? [r] : []).map((item) => ({
+          ...item,
+          jour: cellsToFill[i].jour,
+          periode: cellsToFill[i].periode,
+        }))
+      );
+      const manquantes = results.filter((r) => !r).length;
+      if (!raw.length) throw new Error("Aucune activité n'a pu être générée. Réessaie dans un instant.");
+      if (manquantes) setError(`${manquantes} case(s) n'ont pas pu être générées — utilise le bouton 🔄 de la case pour la refaire.`);
       const next = { ...cells };
       raw.forEach((r) => {
         next[weeklyCellKey(r.jour, r.periode)] = {

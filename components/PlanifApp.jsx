@@ -2420,7 +2420,7 @@ function ScheduleRowEditor({ row, groups, isFirst, isLast, ops, isDragging, isDr
 
 // ================= APERÇU / IMPRESSION =================
 function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept, materialList, isMercredi, mercredis, activitesParMercredi, transitionEnabled, transitionData, transitionImages, dayType, onBack,
-  bingoMots, setBingoMots, cartesItems, setCartesItems, setCartesImages, collationIdees, setCollationIdees, quizQuestions, setQuizQuestions, materielGenere, setMaterielGenere,
+  bingoMots, setBingoMots, cartesItems, setCartesItems, cartesImages, setCartesImages, collationIdees, setCollationIdees, quizQuestions, setQuizQuestions, materielGenere, setMaterielGenere,
 }) {
    const [savingBiblio, setSavingBiblio] = useState(false);
   const [biblioSaved, setBiblioSaved] = useState(false);

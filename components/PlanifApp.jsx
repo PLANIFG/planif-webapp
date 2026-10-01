@@ -532,10 +532,22 @@ function activiteNecessiteCartes(materiel) {
 // illustrations) apparaît en plus de "cartes" — utilise alors les ~20
 // formes déjà dessinées dans l'app (bibliothèque de coloriage) plutôt que
 // du texte libre, puisque l'app ne peut pas générer de vraies images.
+// Vrai si le mot-clé apparaît au DÉBUT d'un mot (« carton » trouve
+// « cartonné », « image » trouve « images »), mais jamais au milieu d'un
+// autre mot (« mue » ne trouve plus « remuer »). Certains mots courts doivent
+// être des mots entiers (« plan » ne trouve plus « plante » ni « planète »).
+const MOTS_ENTIERS = { plan: /(?:^|[^a-z0-9])plans?(?![a-z0-9])/ };
+function motPresent(texteNormalise, motCle) {
+  const mc = String(motCle).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (MOTS_ENTIERS[mc]) return MOTS_ENTIERS[mc].test(texteNormalise);
+  const echappe = mc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^a-z0-9])${echappe}`).test(texteNormalise);
+}
+
 function activiteNecessiteCartesIllustrees(materiel) {
   return (materiel || []).some((m) => {
     const norm = String(m || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    return norm.includes("carte") || norm.includes("carton") || norm.includes("image") || norm.includes("silhouette") || norm.includes("empreinte") || norm.includes("mue") || norm.includes("photo") || norm.includes("modele") || norm.includes("gabarit") || norm.includes("plan");
+    return ["carte", "carton", "image", "silhouette", "empreinte", "mue", "photo", "modele", "gabarit", "plan"].some((mc) => motPresent(norm, mc));
   });
 }
 function buildCartesPrompt({ theme, nomActivite }) {
@@ -746,7 +758,7 @@ function activiteNecessiteMaterielGenere(materiel) {
   (materiel || []).forEach((m) => {
     if (dejaCouvert(m)) return;
     const n = norm(m);
-    const trouve = MATERIEL_GENERE_MOTS_CLES.some((mc) => n.includes(norm(mc)));
+    const trouve = MATERIEL_GENERE_MOTS_CLES.some((mc) => motPresent(n, mc));
     if (trouve && !matches.includes(m)) matches.push(m);
   });
   return matches; // tableau des items de matériel concernés (peut être vide)
@@ -954,13 +966,13 @@ const STREAM_ERROR_MARKER = "\n[[PLANIF_ERREUR]]";
 // Appel commun à /api/generate. Le serveur répond en JSON pour les erreurs
 // (quota, connexion, panne Anthropic) et en texte brut, en streaming, pour
 // une génération réussie — le streaming évite la coupure de Netlify à ~26 s.
-async function callGenerate(promptText, maxTokens) {
+async function callGenerate(promptText, maxTokens, opts = {}) {
   let response;
   try {
     response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: promptText, maxTokens }),
+      body: JSON.stringify({ prompt: promptText, maxTokens, extra: !!opts.extra }),
     });
   } catch (e) {
     const err = new Error(`[appel réseau] ${e.name || "Error"}: ${e.message}`);
@@ -1002,8 +1014,8 @@ async function callGenerate(promptText, maxTokens) {
   return bodyText;
 }
 
-async function askClaudeOnce(promptText, maxTokens) {
-  const text = await callGenerate(promptText, maxTokens);
+async function askClaudeOnce(promptText, maxTokens, opts) {
+  const text = await callGenerate(promptText, maxTokens, opts);
   try {
     return extractJson(text);
   } catch (e) {
@@ -1014,12 +1026,12 @@ async function askClaudeOnce(promptText, maxTokens) {
 // Ne relance qu'une seule fois, et seulement si la réponse est arrivée mais
 // que le JSON était mal formé. Toute autre erreur (réseau, délai, quota,
 // panne) échoue tout de suite : avant, un seul clic pouvait coûter 3 crédits.
-async function askClaude(promptText, maxTokens = 3000) {
+async function askClaude(promptText, maxTokens = 3000, opts = {}) {
   let lastErr;
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await sleep(900 * attempt);
     try {
-      return await askClaudeOnce(promptText, maxTokens);
+      return await askClaudeOnce(promptText, maxTokens, opts);
     } catch (e) {
       lastErr = e;
       if (e.status !== undefined) throw e;
@@ -1047,6 +1059,9 @@ async function askClaudeText(promptText, maxTokens = 400) {
   }
   throw lastErr;
 }
+
+// Extras générés automatiquement (gratuits, ne comptent pas de crédit).
+const askClaudeExtra = (promptText, maxTokens) => askClaude(promptText, maxTokens, { extra: true });
 
 // Envoie plusieurs petits prompts en un seul appel (un seul crédit). Le
 // serveur les lance en parallèle : chacun reste rapide. Retourne le JSON
@@ -1500,7 +1515,7 @@ export default function App() {
     setLoadingTransition(true);
     setTransitionError("");
     try {
-      const raw = await askClaude(buildTransitionPrompt({ theme }));
+      const raw = await askClaudeExtra(buildTransitionPrompt({ theme }));
       const formes = normalizeFormes(raw.formes);
       const mots = Array.isArray(raw.mots) ? raw.mots : [];
       const imagePrompts = Array.isArray(raw.imagePrompts) ? raw.imagePrompts.filter(Boolean) : [];
@@ -2446,7 +2461,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       if (!activiteNecessiteBingo(activite.nom)) return;
       if (bingoMots[activite.id] || bingoEnCours.current[activite.id]) return;
       bingoEnCours.current[activite.id] = true;
-      askClaude(buildBingoPrompt({ theme, nomActivite: activite.nom }))
+      askClaudeExtra(buildBingoPrompt({ theme, nomActivite: activite.nom }))
         .then((mots) => {
           if (Array.isArray(mots) && mots.length >= 24) {
             setBingoMots((cur) => ({ ...cur, [activite.id]: mots }));
@@ -2466,7 +2481,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       if (!activiteNecessiteCartes(activite.materiel)) return;
       if (cartesItems[activite.id] || cartesEnCours.current[activite.id]) return;
       cartesEnCours.current[activite.id] = true;
-      askClaude(buildCartesPrompt({ theme, nomActivite: activite.nom }))
+      askClaudeExtra(buildCartesPrompt({ theme, nomActivite: activite.nom }))
         .then((items) => {
           if (Array.isArray(items) && items.length >= 8) {
             setCartesItems((cur) => ({ ...cur, [activite.id]: items }));
@@ -2493,7 +2508,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       const itemMateriel = (activite.materiel || []).find((m) => activiteNecessiteCartesIllustrees([m]));
       (async () => {
         try {
-          const raw = await askClaude(buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite: activite.nom, itemMateriel, deroulement: activite.deroulement }));
+          const raw = await askClaudeExtra(buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite: activite.nom, itemMateriel, deroulement: activite.deroulement }));
           const liste = Array.isArray(raw?.cartes) ? raw.cartes.slice(0, CARTES_ILLUSTREES_MAX) : [];
           if (liste.length === 0) return;
           const resultats = [];
@@ -2521,7 +2536,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       if (!activiteNecessiteCollation(activite.nom, activite.materiel)) return;
       if (collationIdees[activite.id] || collationEnCours.current[activite.id]) return;
       collationEnCours.current[activite.id] = true;
-      askClaude(buildCollationPrompt({ theme, nomActivite: activite.nom }))
+      askClaudeExtra(buildCollationPrompt({ theme, nomActivite: activite.nom }))
         .then((idees) => {
           if (Array.isArray(idees) && idees.length >= 3) {
             setCollationIdees((cur) => ({ ...cur, [activite.id]: idees }));
@@ -2541,7 +2556,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       if (!activiteNecessiteQuiz(activite.nom, activite.materiel)) return;
       if (quizQuestions[activite.id] || quizEnCours.current[activite.id]) return;
       quizEnCours.current[activite.id] = true;
-      askClaude(buildQuizPrompt({ theme, nomActivite: activite.nom }))
+      askClaudeExtra(buildQuizPrompt({ theme, nomActivite: activite.nom }))
         .then((questions) => {
           if (Array.isArray(questions) && questions.length >= 10) {
             setQuizQuestions((cur) => ({ ...cur, [activite.id]: questions }));
@@ -2565,7 +2580,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
         const cle = `${activite.id}::${itemMateriel}`;
         if (materielGenere[activite.id]?.[itemMateriel] || materielGenereEnCours.current[cle]) return;
         materielGenereEnCours.current[cle] = true;
-        askClaude(buildMaterielGenerePrompt({ theme, nomActivite: activite.nom, itemMateriel }))
+        askClaudeExtra(buildMaterielGenerePrompt({ theme, nomActivite: activite.nom, itemMateriel }))
           .then((data) => {
             if (data && data.titre) {
               setMaterielGenere((cur) => ({
@@ -3121,7 +3136,7 @@ function WeeklyGridTool({ initialData }) {
     setLoadingTransition(true);
     setTransitionError("");
     try {
-      const raw = await askClaude(buildTransitionPrompt({ theme }));
+      const raw = await askClaudeExtra(buildTransitionPrompt({ theme }));
       const formes = normalizeFormes(raw.formes);
       const mots = Array.isArray(raw.mots) ? raw.mots : [];
       const imagePrompts = Array.isArray(raw.imagePrompts) ? raw.imagePrompts.filter(Boolean) : [];
@@ -3161,7 +3176,7 @@ function WeeklyGridTool({ initialData }) {
         const key = weeklyCellKey(jourObj.name, periode);
         if (bingoMots[key] || bingoEnCours.current[key]) return;
         bingoEnCours.current[key] = true;
-        askClaude(buildBingoPrompt({ theme, nomActivite: cell.activite }))
+        askClaudeExtra(buildBingoPrompt({ theme, nomActivite: cell.activite }))
           .then((mots) => {
             if (Array.isArray(mots) && mots.length >= 24) {
               setBingoMots((cur) => ({ ...cur, [key]: mots }));
@@ -3184,7 +3199,7 @@ function WeeklyGridTool({ initialData }) {
         const key = weeklyCellKey(jourObj.name, periode);
         if (cartesItemsWeek[key] || cartesEnCoursWeek.current[key]) return;
         cartesEnCoursWeek.current[key] = true;
-        askClaude(buildCartesPrompt({ theme, nomActivite: cell.activite }))
+        askClaudeExtra(buildCartesPrompt({ theme, nomActivite: cell.activite }))
           .then((items) => {
             if (Array.isArray(items) && items.length >= 8) {
               setCartesItemsWeek((cur) => ({ ...cur, [key]: items }));
@@ -3210,7 +3225,7 @@ function WeeklyGridTool({ initialData }) {
         const itemMateriel = (cell.materiel || []).find((m) => activiteNecessiteCartesIllustrees([m]));
         (async () => {
           try {
-            const raw = await askClaude(buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite: cell.activite, itemMateriel, deroulement: (cell.description || "").split("\n").filter((l) => l.trim()) }));
+            const raw = await askClaudeExtra(buildCartesIllustreesDescriptionsPrompt({ theme, nomActivite: cell.activite, itemMateriel, deroulement: (cell.description || "").split("\n").filter((l) => l.trim()) }));
             const liste = Array.isArray(raw?.cartes) ? raw.cartes.slice(0, CARTES_ILLUSTREES_MAX) : [];
             if (liste.length === 0) return;
             const resultats = [];
@@ -3239,7 +3254,7 @@ function WeeklyGridTool({ initialData }) {
         const key = weeklyCellKey(jourObj.name, periode);
         if (collationIdeesWeek[key] || collationEnCoursWeek.current[key]) return;
         collationEnCoursWeek.current[key] = true;
-        askClaude(buildCollationPrompt({ theme, nomActivite: cell.activite }))
+        askClaudeExtra(buildCollationPrompt({ theme, nomActivite: cell.activite }))
           .then((idees) => {
             if (Array.isArray(idees) && idees.length >= 3) {
               setCollationIdeesWeek((cur) => ({ ...cur, [key]: idees }));
@@ -3261,7 +3276,7 @@ function WeeklyGridTool({ initialData }) {
         const key = weeklyCellKey(jourObj.name, periode);
         if (quizQuestionsWeek[key] || quizEnCoursWeek.current[key]) return;
         quizEnCoursWeek.current[key] = true;
-        askClaude(buildQuizPrompt({ theme, nomActivite: cell.activite }))
+        askClaudeExtra(buildQuizPrompt({ theme, nomActivite: cell.activite }))
           .then((questions) => {
             if (Array.isArray(questions) && questions.length >= 10) {
               setQuizQuestionsWeek((cur) => ({ ...cur, [key]: questions }));
@@ -3286,7 +3301,7 @@ function WeeklyGridTool({ initialData }) {
           const cle = `${key}::${itemMateriel}`;
           if (materielGenereWeek[key]?.[itemMateriel] || materielGenereEnCoursWeek.current[cle]) return;
           materielGenereEnCoursWeek.current[cle] = true;
-          askClaude(buildMaterielGenerePrompt({ theme, nomActivite: cell.activite, itemMateriel }))
+          askClaudeExtra(buildMaterielGenerePrompt({ theme, nomActivite: cell.activite, itemMateriel }))
             .then((data) => {
               if (data && data.titre) {
                 setMaterielGenereWeek((cur) => ({

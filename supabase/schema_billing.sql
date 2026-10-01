@@ -43,3 +43,53 @@ $$;
 
 revoke all on function public.refund_generation(uuid) from public, anon, authenticated;
 grant execute on function public.refund_generation(uuid) to service_role;
+
+-- Extras gratuits générés automatiquement (bingo, quiz, cartes, collation,
+-- matériel, fiches de transition) : compteur quotidien séparé des crédits.
+alter table public.subscriptions
+  add column if not exists extras_used integer not null default 0,
+  add column if not exists extras_day date;
+
+create or replace function public.try_consume_extra(p_user_id uuid, p_daily_limit integer default 50)
+returns table(allowed boolean, extras_used integer)
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_status text;
+  v_sub_id text;
+  v_used integer;
+  v_day date;
+  v_today date := (now() at time zone 'America/Toronto')::date;
+begin
+  select s.status, s.stripe_subscription_id, s.extras_used, s.extras_day
+  into v_status, v_sub_id, v_used, v_day
+  from subscriptions s
+  where s.user_id = p_user_id
+  for update;
+
+  if not found or v_sub_id is null or v_status not in ('active', 'trialing', 'past_due') then
+    return query select false, coalesce(v_used, 0);
+    return;
+  end if;
+
+  if v_day is distinct from v_today then
+    v_used := 0;
+  end if;
+
+  if v_used >= p_daily_limit then
+    return query select false, v_used;
+    return;
+  end if;
+
+  update subscriptions s
+  set extras_used = v_used + 1, extras_day = v_today
+  where s.user_id = p_user_id;
+
+  return query select true, v_used + 1;
+end;
+$$;
+
+revoke all on function public.try_consume_extra(uuid, integer) from public, anon, authenticated;
+grant execute on function public.try_consume_extra(uuid, integer) to service_role;

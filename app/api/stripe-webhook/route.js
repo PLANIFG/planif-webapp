@@ -80,7 +80,17 @@ export async function POST(request) {
           // de remettre le compteur de générations à 0 — sinon un événement
           // "updated" sans changement de cycle (ex. mise à jour de carte)
           // effacerait injustement les générations déjà utilisées ce mois-ci.
-          const isNewCycle = !existing || existing.period_end !== newPeriodEnd;
+          // Comparaison des DATES (et non du texte) : Supabase renvoie
+          // "2026-10-08T00:00:00+00:00" alors que toISOString() donne
+          // "2026-10-08T00:00:00.000Z" — les deux textes ne sont jamais égaux,
+          // ce qui remettait le compteur à 0 à chaque mise à jour Stripe.
+          const sameInstant = (a, b) => {
+            if (!a || !b) return false;
+            const ta = new Date(a).getTime();
+            const tb = new Date(b).getTime();
+            return !isNaN(ta) && !isNaN(tb) && ta === tb;
+          };
+          const isNewCycle = !existing || !sameInstant(existing.period_end, newPeriodEnd);
           const updatePayload = {
             user_id: userId,
             stripe_subscription_id: sub.id,

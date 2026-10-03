@@ -122,41 +122,68 @@ export async function POST(request) {
   }
 
   if (isBatch) {
-    const perCallTokens = Math.min(Number(maxTokens) || 1500, 2000);
-    try {
-      const texts = await Promise.all(
-        prompts.map(async (p) => {
-          const r = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": apiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model: "claude-sonnet-5",
-              max_tokens: perCallTokens,
-              messages: [{ role: "user", content: p }],
-            }),
-          });
-          const data = await r.json().catch(() => null);
-          if (!r.ok) throw new Error(data?.error?.message || `Erreur API Anthropic (${r.status})`);
-          const text = (data?.content || []).map((b) => b.text || "").join("\n").trim();
-          if (!text) throw new Error("Réponse vide de l'IA.");
-          return text;
-        })
-      );
-      return Response.json({
-        texts,
-        quotaInfo: { generationsUsed: quota.generationsUsed, generationLimit: quota.generationLimit },
+    // Chaque prompt est envoyé en parallèle. La réponse est diffusée en
+    // streaming (des espaces de « maintien » toutes les 5 s, puis le JSON
+    // final) : Netlify accorde alors 60 s au lieu d'environ 26 s.
+    const perCallTokens = Math.min(Number(maxTokens) || 1500, 3000);
+    const callOne = async (p) => {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-5",
+          max_tokens: perCallTokens,
+          messages: [{ role: "user", content: p }],
+        }),
       });
-    } catch (e) {
-      await refundGeneration(db, user.id);
-      return Response.json(
-        { error: `${e.message || "La génération a échoué."} Ton crédit t'a été remis, tu peux réessayer.` },
-        { status: 502 }
-      );
-    }
+      const data = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(data?.error?.message || `Erreur API Anthropic (${r.status})`);
+      const text = (data?.content || []).map((b) => b.text || "").join("\n").trim();
+      if (!text) throw new Error("Réponse vide de l'IA.");
+      return text;
+    };
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const keepAlive = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(" "));
+          } catch (_) {}
+        }, 5000);
+        let payload;
+        try {
+          const settled = await Promise.allSettled(prompts.map(callOne));
+          const texts = settled.map((r) => (r.status === "fulfilled" ? r.value : null));
+          if (texts.every((t) => t === null)) {
+            // Tout a échoué : on rend le crédit.
+            await refundGeneration(db, user.id);
+            const firstErr = settled.find((r) => r.status === "rejected")?.reason?.message;
+            payload = {
+              error: `${firstErr || "La génération a échoué."} Ton crédit t'a été remis, tu peux réessayer.`,
+            };
+          } else {
+            payload = {
+              texts,
+              quotaInfo: { generationsUsed: quota.generationsUsed, generationLimit: quota.generationLimit },
+            };
+          }
+        } catch (e) {
+          await refundGeneration(db, user.id);
+          payload = { error: `${e.message || "La génération a échoué."} Ton crédit t'a été remis, tu peux réessayer.` };
+        } finally {
+          clearInterval(keepAlive);
+        }
+        controller.enqueue(encoder.encode(JSON.stringify(payload)));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache, no-transform" },
+    });
   }
 
   // Étape 3 — appel à Anthropic EN STREAMING. Netlify coupe une réponse

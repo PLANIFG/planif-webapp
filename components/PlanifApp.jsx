@@ -1082,11 +1082,11 @@ async function askClaudeBatch(prompts, maxTokens = 1500) {
   const bodyText = await response.text().catch(() => "");
   let data = null;
   try {
-    data = JSON.parse(bodyText);
+    data = JSON.parse(bodyText.trim());
   } catch (_) {}
-  if (!response.ok || !data) {
+  if (!response.ok || !data || data.error) {
     const err = new Error(data?.error || `Erreur réseau/API (${response.status}). Réessaie dans un instant.`);
-    err.status = response.status || 0;
+    err.status = response.ok ? 502 : response.status || 0;
     throw err;
   }
   return (data.texts || []).map((t) => {
@@ -1560,23 +1560,24 @@ export default function App() {
       // cette limite (erreur "Inactivity Timeout"). S'applique aussi au mode
       // mercredi maternelle : l'ordre de génération correspond à l'ordre des
       // mercredis (le regroupement par date se fait à l'affichage, par index).
-      const results = [];
-      const names = [];
-      let echecs = 0;
-      for (let i = 0; i < effectiveCount; i++) {
-        try {
-          const lieuAssigne = lieux.length > 0 ? lieux[i % lieux.length] : undefined;
-          const raw = await askClaude(buildSinglePrompt({ theme, ages, lieux, avoidNames: names, isMercredi, lieuAssigne, approcheIndex: i }));
-          results.push({ id: nextId(), ...raw });
-          names.push(raw.nom);
-          setIdeas([...results]); // affiche les idées au fur et à mesure, pas juste à la toute fin
-        } catch (e) {
-          // Une activité malchanceuse (ex. lenteur ponctuelle du serveur) ne doit
-          // pas faire perdre toutes celles déjà générées avec succès — on continue
-          // avec les suivantes, et on avertit à la fin combien ont échoué.
-          echecs += 1;
-        }
-      }
+      // Toutes les idées sont générées EN PARALLÈLE en un seul appel : un clic
+      // sur « Générer des idées » ne compte qu'un crédit, peu importe le
+      // nombre d'idées (avant, chaque idée comptait un crédit).
+      // Les idées étant générées en même temps, chacune reçoit un type
+      // d'activité différent pour que la liste reste variée.
+      const offset = Math.floor(Math.random() * WEEK_VARIETY.length);
+      const prompts = Array.from({ length: effectiveCount }, (_, i) => {
+        const lieuAssigne = lieux.length > 0 ? lieux[i % lieux.length] : undefined;
+        return (
+          buildSinglePrompt({ theme, ages, lieux, avoidNames: [], isMercredi, lieuAssigne, approcheIndex: i }) +
+          `\n\nPour varier (les autres idées sont générées séparément), propose ici ${WEEK_VARIETY[(offset + i) % WEEK_VARIETY.length]}.`
+        );
+      });
+      const raws = await askClaudeBatch(prompts, 3000);
+      const results = raws.filter(Boolean).map((raw) => ({ id: nextId(), ...raw }));
+      const echecs = raws.length - results.length;
+      if (results.length === 0) throw new Error("Aucune idée n'a pu être générée. Réessaie dans un instant.");
+      setIdeas(results);
       if (echecs > 0) {
         setError(
           `${results.length} idée${results.length > 1 ? "s" : ""} générée${results.length > 1 ? "s" : ""} avec succès. ` +

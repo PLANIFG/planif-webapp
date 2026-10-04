@@ -2737,12 +2737,7 @@ ${fichesHtml}
 
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    // On ouvre dans un nouvel onglet plutôt que de forcer un téléchargement :
-    // le téléchargement forcé d'un .html via <a download> est peu fiable sur
-    // Safari mobile (iOS), où ça peut ne rien faire du tout. Ouvrir l'onglet
-    // laisse la personne utiliser le menu de partage de son navigateur pour
-    // imprimer ou enregistrer en PDF, ce que le message affiché propose déjà.
-    window.open(url, "_blank");
+    ouvrirVersionImprimable(url, `${(theme || "planification").replace(/[^a-z0-9]+/gi, "-")}.html`);
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
@@ -2985,6 +2980,29 @@ function ScheduleRow({ time, label, span }) {
 // ================= WEEKLY GRID TOOL (planification hebdomadaire) =================
 function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Sur mobile (Safari iOS surtout), le téléchargement forcé d'un .html via
+// <a download> est peu fiable : ouvrir un nouvel onglet est le seul moyen
+// fiable d'accéder à la version imprimable. Sur ordinateur par contre,
+// ouvrir un onglet oblige la personne à faire « Enregistrer sous » elle-même
+// pour obtenir un fichier — un pas de plus qu'avant. On garde donc le
+// téléchargement direct sur ordinateur, et seulement l'onglet sur mobile.
+function estMobile() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+}
+function ouvrirVersionImprimable(url, nomFichier) {
+  if (estMobile()) {
+    window.open(url, "_blank");
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomFichier;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 const WEEKLY_DEFAULT_PERIODES = ["Midi"];
@@ -3578,9 +3596,7 @@ function WeeklyGridTool({ initialData }) {
 
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    // Même correctif que pour la journée : on ouvre un onglet au lieu de
-    // forcer un téléchargement, peu fiable sur Safari mobile.
-    window.open(url, "_blank");
+    ouvrirVersionImprimable(url, `${(theme || groupeNom || semaine || "grille-hebdomadaire").replace(/[^a-z0-9]+/gi, "-")}.html`);
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 

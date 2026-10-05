@@ -98,8 +98,17 @@ export async function POST(request) {
       message = "Impossible de vérifier ton quota pour le moment. Réessaie dans un instant.";
     } else if ((quota.generationsUsed ?? 0) < (quota.generationLimit ?? 0)) {
       // Refusé alors qu'il reste des crédits : l'abonnement n'est pas
-      // complété (aucune carte entrée) ou n'est plus actif.
-      message = "Ton abonnement n'est pas actif. Complète ton abonnement pour générer des activités.";
+      // complété (aucune carte entrée), n'est plus actif, ou le paiement a
+      // été refusé (past_due).
+      const { data: sub } = await db
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      message =
+        sub?.status === "past_due"
+          ? "Ton paiement n'a pas pu être traité. Mets à jour ta carte avec le bouton « Gérer mon abonnement » pour continuer à générer des activités."
+          : "Ton abonnement n'est pas actif. Complète ton abonnement pour générer des activités.";
     } else {
       // On valide que la date est réelle (ni vide, ni 1970-01-01, l'artefact
       // classique d'une date "zéro" en JavaScript) avant de l'afficher.

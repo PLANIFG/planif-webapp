@@ -69,7 +69,7 @@ begin
   where s.user_id = p_user_id
   for update;
 
-  if not found or v_sub_id is null or v_status not in ('active', 'trialing', 'past_due') then
+  if not found or v_sub_id is null or v_status not in ('active', 'trialing') then
     return query select false, coalesce(v_used, 0);
     return;
   end if;

@@ -2735,10 +2735,7 @@ ${fichesHtml}
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
 </body></html>`;
 
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    ouvrirVersionImprimable(url, `${(theme || "planification").replace(/[^a-z0-9]+/gi, "-")}.html`);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    enregistrerVersionImprimable(html, `${(theme || "planification").replace(/[^a-z0-9]+/gi, "-")}.html`);
   };
 
   return (
@@ -2982,27 +2979,53 @@ function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-// Sur mobile (Safari iOS surtout), le téléchargement forcé d'un .html via
-// <a download> est peu fiable : ouvrir un nouvel onglet est le seul moyen
-// fiable d'accéder à la version imprimable. Sur ordinateur par contre,
-// ouvrir un onglet oblige la personne à faire « Enregistrer sous » elle-même
-// pour obtenir un fichier — un pas de plus qu'avant. On garde donc le
-// téléchargement direct sur ordinateur, et seulement l'onglet sur mobile.
+// Enregistrer la version imprimable (un fichier .html).
+// - Mobile : feuille de partage du système (« Enregistrer dans Fichiers » sur
+//   iPhone) — ni le téléchargement forcé ni un simple onglet ne la donnent.
+// - Ordinateur : vraie fenêtre « Enregistrer sous » (Chrome/Edge). Contrairement
+//   à un téléchargement automatique, elle n'est pas interceptée par des
+//   extensions de téléchargement et ne peut pas échouer en silence.
+// - Sinon : téléchargement classique, puis ouverture dans un onglet en dernier recours.
 function estMobile() {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
 }
-function ouvrirVersionImprimable(url, nomFichier) {
-  if (estMobile()) {
-    window.open(url, "_blank");
-    return;
+async function enregistrerVersionImprimable(html, nomFichier) {
+  const blob = new Blob([html], { type: "text/html" });
+  try {
+    if (estMobile() && typeof File !== "undefined" && navigator.canShare) {
+      const file = new File([blob], nomFichier, { type: "text/html" });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: nomFichier });
+        return;
+      }
+    }
+    if (!estMobile() && window.showSaveFilePicker) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: nomFichier,
+        types: [{ description: "Page web", accept: { "text/html": [".html"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return; // la personne a annulé
+    console.warn("Enregistrement direct impossible, repli :", e);
   }
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nomFichier;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const url = URL.createObjectURL(blob);
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nomFichier;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (e) {
+    window.open(url, "_blank");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 const WEEKLY_DEFAULT_PERIODES = ["Midi"];
@@ -3594,10 +3617,7 @@ function WeeklyGridTool({ initialData }) {
 <p style="margin-top:24px;color:#B3A990;font-size:12px;">Ouvrez le menu de partage de votre navigateur pour imprimer ou enregistrer en PDF.</p>
 </body></html>`;
 
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    ouvrirVersionImprimable(url, `${(theme || groupeNom || semaine || "grille-hebdomadaire").replace(/[^a-z0-9]+/gi, "-")}.html`);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    enregistrerVersionImprimable(html, `${(theme || groupeNom || semaine || "grille-hebdomadaire").replace(/[^a-z0-9]+/gi, "-")}.html`);
   };
 
   const fiches = [];

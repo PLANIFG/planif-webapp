@@ -93,3 +93,9 @@ $$;
 
 revoke all on function public.try_consume_extra(uuid, integer) from public, anon, authenticated;
 grant execute on function public.try_consume_extra(uuid, integer) to service_role;
+
+-- Seul le serveur (clé service_role, route /api/generate) doit appeler
+-- try_consume_generation : sinon n'importe qui pourrait consommer les
+-- crédits d'un autre compte via /rest/v1/rpc. (Appliqué sur la base le 12 oct.)
+revoke all on function public.try_consume_generation(uuid) from public, anon, authenticated;
+grant execute on function public.try_consume_generation(uuid) to service_role;

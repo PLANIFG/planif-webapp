@@ -21,6 +21,9 @@ const COLORS = {
 const FONT_IMPORT_URL =
   "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap";
 
+// Interrupteur : bingo, cartes, cartes illustrées et images IA (OpenAI) désactivés dans PLANIF.
+const CARTES_ILLUSTREES_ACTIVES = false;
+
 // ---------- Niveau de préparation d'une activité ----------
 // Chaque activité indique si l'éducatrice doit préparer quelque chose avant :
 // aucune (rien à faire), légère (quelques minutes) ou élaborée (découpage,
@@ -30,7 +33,7 @@ const PREPARATION_NIVEAUX = {
   legere: { label: "Préparation légère", court: "Légère", bg: "#FFF3D6", fg: "#8A6410", border: "#F0DDA6", points: 1 },
   elaboree: { label: "Préparation élaborée", court: "Élaborée", bg: "#FBE4DA", fg: "#A5432B", border: "#F0C7B6", points: 2 },
 };
-const MATERIEL_CONSIGNE = `RÈGLE MATÉRIEL : ne propose JAMAIS d'activité qui nécessite de découper ou de plastifier du matériel (cartes, bingo, jetons, étiquettes, pièces de casse-tête, etc.). Les fiches à imprimer et à utiliser telles quelles sont acceptées, par exemple un questionnaire, une fiche d'information ou une feuille de réponses. Pour le reste, privilégie le matériel de base (papier, crayons, ballons, objets du quotidien), le jeu en mouvement ou verbal.`;
+const MATERIEL_CONSIGNE = `RÈGLE MATÉRIEL : ne propose JAMAIS d'activité qui nécessite de préparer du matériel, ni de découper ou de plastifier quoi que ce soit (bingo, cartes, jetons, étiquettes, gabarits, pièces de casse-tête, bricolage à préparer à l'avance, etc.). Les fiches à imprimer et à utiliser telles quelles sont acceptées, par exemple un questionnaire, une fiche d'information ou une feuille de réponses. Pour le reste, privilégie le matériel de base (papier, crayons, ballons, objets du quotidien), le jeu en mouvement ou verbal.`;
 
 // Accepte les variantes que l'IA peut renvoyer (accents, majuscules, « aucun »…).
 function normaliserPreparation(v) {
@@ -530,7 +533,9 @@ function WordSearchPrintPage({ wordSearch, theme }) {
 // ---------- Matériel détecté automatiquement (bingo) ----------
 // Repère si une activité mentionne "bingo" dans son nom, sans distinction
 // d'accents/majuscules (ex. "Bingo des aliments", "BINGO nature").
+// Bingo désactivé dans PLANIF (matériel à préparer).
 function activiteNecessiteBingo(nom) {
+  if (!CARTES_ILLUSTREES_ACTIVES) return false;
   const norm = String(nom || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return norm.includes("bingo");
 }
@@ -579,8 +584,6 @@ function BingoPrintPage({ nomActivite, theme, mots }) {
 // (peu importe le mot exact — "cartes alimentaires", "des cartes", etc.),
 // sans distinction d'accents/majuscules. Distinct des cartes ILLUSTRÉES
 // (voir plus bas) — un même matériel ne déclenche que l'un ou l'autre.
-// Interrupteur : cartes illustrées et images IA (OpenAI) désactivées dans PLANIF.
-const CARTES_ILLUSTREES_ACTIVES = false;
 function activiteNecessiteCartes(materiel) {
   // Désactivée : "carte" génère maintenant toujours de vraies images
   // (voir activiteNecessiteCartesIllustrees) plutôt qu'une liste de texte.

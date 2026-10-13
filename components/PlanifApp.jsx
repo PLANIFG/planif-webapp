@@ -579,6 +579,8 @@ function BingoPrintPage({ nomActivite, theme, mots }) {
 // (peu importe le mot exact — "cartes alimentaires", "des cartes", etc.),
 // sans distinction d'accents/majuscules. Distinct des cartes ILLUSTRÉES
 // (voir plus bas) — un même matériel ne déclenche que l'un ou l'autre.
+// Interrupteur : cartes illustrées et images IA (OpenAI) désactivées dans PLANIF.
+const CARTES_ILLUSTREES_ACTIVES = false;
 function activiteNecessiteCartes(materiel) {
   // Désactivée : "carte" génère maintenant toujours de vraies images
   // (voir activiteNecessiteCartesIllustrees) plutôt qu'une liste de texte.
@@ -602,6 +604,7 @@ function motPresent(texteNormalise, motCle) {
 }
 
 function activiteNecessiteCartesIllustrees(materiel) {
+  if (!CARTES_ILLUSTREES_ACTIVES) return false;
   return (materiel || []).some((m) => {
     const norm = String(m || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     return ["carte", "carton", "image", "silhouette", "empreinte", "mue", "photo", "modele", "gabarit", "plan"].some((mc) => motPresent(norm, mc));
@@ -665,6 +668,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format e
 // afficher directement — ou null en cas d'échec (sans faire planter tout
 // le lot pour autant).
 async function generateOpenAIImage(prompt) {
+  if (!CARTES_ILLUSTREES_ACTIVES) return null;
   try {
     const res = await fetch("/api/generate-image", {
       method: "POST",

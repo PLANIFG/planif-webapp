@@ -21,6 +21,61 @@ const COLORS = {
 const FONT_IMPORT_URL =
   "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap";
 
+// ---------- Niveau de préparation d'une activité ----------
+// Chaque activité indique si l'éducatrice doit préparer quelque chose avant :
+// aucune (rien à faire), légère (quelques minutes) ou élaborée (découpage,
+// bricolage, achats…). Valeur stockée dans le champ `preparation`.
+const PREPARATION_NIVEAUX = {
+  aucune: { label: "Aucune préparation", court: "Aucune", bg: "#E4EEE4", fg: "#54634A", border: "#C9DBC6", points: 0 },
+  legere: { label: "Préparation légère", court: "Légère", bg: "#FFF3D6", fg: "#8A6410", border: "#F0DDA6", points: 1 },
+  elaboree: { label: "Préparation élaborée", court: "Élaborée", bg: "#FBE4DA", fg: "#A5432B", border: "#F0C7B6", points: 2 },
+};
+const PREPARATION_CONSIGNE = `Indique aussi, dans le champ "preparation", le niveau de préparation que l'éducatrice doit faire AVANT l'activité : "aucune" (rien à préparer : aucun matériel ou matériel déjà disponible sur place), "legere" (quelques minutes : rassembler quelques objets, faire des photocopies) ou "elaboree" (plus de 15 minutes : découpage, bricolage, achats, recette ou installation importante).`;
+
+// Accepte les variantes que l'IA peut renvoyer (accents, majuscules, « aucun »…).
+function normaliserPreparation(v) {
+  if (typeof v !== "string") return "";
+  const s = v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  if (s.startsWith("aucun") || s === "none" || s === "nulle") return "aucune";
+  if (s.startsWith("leg") || s === "light") return "legere";
+  if (s.startsWith("elab") || s === "heavy") return "elaboree";
+  return "";
+}
+
+function PreparationBadge({ niveau, compact = false }) {
+  const n = PREPARATION_NIVEAUX[normaliserPreparation(niveau)];
+  if (!n) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full font-semibold"
+      style={{ background: n.bg, color: n.fg, border: `1px solid ${n.border}`, fontSize: 11, padding: compact ? "1px 8px" : "2px 10px" }}
+      title={n.label}
+    >
+      <span className="inline-flex gap-0.5" aria-hidden="true">
+        {[0, 1].map((i) => (
+          <span key={i} style={{ width: 6, height: 6, borderRadius: 999, background: i < n.points ? n.fg : "transparent", border: `1px solid ${n.fg}`, opacity: i < n.points ? 1 : 0.4 }} />
+        ))}
+      </span>
+      {compact ? n.court : n.label}
+    </span>
+  );
+}
+
+// Version HTML (pour les pages imprimables).
+function preparationBadgeHtml(niveau) {
+  const n = PREPARATION_NIVEAUX[normaliserPreparation(niveau)];
+  if (!n) return "";
+  return `<span style="display:inline-block;background:${n.bg};color:${n.fg};border:1px solid ${n.border};border-radius:999px;padding:1px 9px;font-size:11px;font-weight:700;">${n.label}</span>`;
+}
+
+// Bloc « Matériel » en HTML : encadré doux avec cases à cocher, pour l'impression.
+function materielBoiteHtml(itemsLis, niveau, titre = "Matériel") {
+  if (!itemsLis) return "";
+  return `<div style="margin-top:16px;padding:12px 14px;background:#F3F7F1;border:1px solid #D5E2D0;border-radius:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><span style="color:#54634A;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">🧺 ${titre}</span>${preparationBadgeHtml(niveau)}</div>
+    <ul style="list-style:none;padding-left:0;margin:0;">${itemsLis}</ul></div>`;
+}
+
 const DEFAULT_LIEUX = ["Gymnase", "Cuisine", "Labo créatif", "Cour intérieure"];
 const AGES = ["4-6 ans", "7-9 ans", "10-12 ans"];
 const MATERNELLE_AGES = ["4 ans", "5 ans"];
@@ -1178,6 +1233,7 @@ ${cadreMensuel}${agesInstruction(ages)}
 Propose ${count} idées d'activités DIFFÉRENTES et concrètes, réalisables avec un groupe d'enfants, en lien avec le thème.
 IMPORTANT : ${contrainteDuree}
 Pour chaque activité, écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité de façon vivante — évite les formules génériques comme "Aujourd'hui on va faire une activité".
+${PREPARATION_CONSIGNE}
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, sans balises markdown, au format exact suivant :
 [
@@ -1187,6 +1243,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, sans b
     "age": "Groupe d'âge le plus adapté",
     "duree": "Durée estimée (ex. 45-60 minutes)",
     "amorce": "Courte amorce à dire aux enfants",
+    "preparation": "aucune, legere ou elaboree",
     "deroulement": ["Étape 1", "Étape 2", "Étape 3", "Étape 4"],
     "materiel": ["Item 1", "Item 2", "Item 3"]
   }
@@ -1215,6 +1272,7 @@ Propose UNE nouvelle idée d'activité, différente de celles-ci : ${avoidNames.
 IMPORTANT : ${isMercredi ? "l'activité doit durer 30 MINUTES MAXIMUM (c'est le temps alloué par bloc de rotation)." : "l'activité doit durer 60 minutes MAXIMUM (idéalement 30 à 60 minutes)."}
 ${lieuAssigne && activiteEstCuisine(lieuAssigne) ? `\nIMPORTANT : cette activité se déroule à la Cuisine — c'est donc une recette. Dans le champ "materiel", écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine", "1/2 tasse de cassonade"), pas seulement le nom de l'ingrédient.\n` : ""}
 Écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité de façon vivante.
+${PREPARATION_CONSIGNE}
 
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format exact :
 {
@@ -1223,6 +1281,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant/après, format e
   "age": "Groupe d'âge",
   "duree": "Durée estimée",
   "amorce": "Courte amorce à dire aux enfants",
+  "preparation": "aucune, legere ou elaboree",
   "deroulement": ["Étape 1", "Étape 2", "Étape 3", "Étape 4"],
   "materiel": ["Item 1", "Item 2"],
   "adaptationPlusJeunes": "${ages && ages.length === 1 ? "Variante simplifiée en une phrase" : ""}",
@@ -2107,6 +2166,25 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         <span className="flex items-center gap-1"><Users size={12} />{idea.age}</span>
         <span>{idea.duree}</span>
       </div>
+      {(normaliserPreparation(idea.preparation) || isEditing) && (
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
+          {isEditing ? (
+            <label className="text-xs text-[#7A7362] flex items-center gap-2">
+              Préparation :
+              <select
+                value={normaliserPreparation(idea.preparation)}
+                onChange={(e) => onUpdate({ preparation: e.target.value })}
+                className="bg-white border border-[#DCD3C2] rounded-lg px-2 py-1 text-xs text-[#2B2A26] focus:outline-none focus:ring-2 focus:ring-[#7C9070]"
+              >
+                <option value="">Non précisée</option>
+                {Object.entries(PREPARATION_NIVEAUX).map(([k, n]) => <option key={k} value={k}>{n.label}</option>)}
+              </select>
+            </label>
+          ) : (
+            <PreparationBadge niveau={idea.preparation} />
+          )}
+        </div>
+      )}
 
       <div className="mb-3">
         <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362] mb-1">Amorce</p>
@@ -2139,12 +2217,12 @@ function IdeaCard({ idea, isKept, isEditing, isRegenerating, onEdit, onKeep, onU
         {isEditing && <button onClick={() => onAddListItem("deroulement")} className="mt-1 text-xs font-semibold text-[#7C9070] flex items-center gap-1"><Plus size={12} /> Étape</button>}
       </div>
 
-      <div className="mb-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-[#7A7362] mb-1">Matériel</p>
-        <ul className="space-y-1">
+      <div className="mb-4 rounded-xl p-3" style={{ background: "#F3F7F1", border: "1px solid #D5E2D0" }}>
+        <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: COLORS.mossDark }}><ShoppingBag size={13} /> Matériel</p>
+        <ul className="space-y-1.5">
           {(idea.materiel || []).map((m, i) => (
             <li key={i} className="text-sm flex items-start gap-2">
-              <span style={{ color: COLORS.marine }}>•</span>
+              <span className="mt-0.5 shrink-0 inline-flex items-center justify-center rounded-md bg-white" style={{ width: 16, height: 16, border: `1.5px solid ${COLORS.moss}`, color: COLORS.moss }}><Check size={10} strokeWidth={3} /></span>
               {isEditing ? (
                 <div className="flex-1 flex items-center gap-1">
                   <TextField value={m} onChange={(v) => onUpdateListField("materiel", i, v)} />
@@ -2630,7 +2708,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
 
     const fichesHtml = kept.map((st) => {
       const etapes = (st.deroulement || []).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
-      const materiel = (st.materiel || []).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
+      const materiel = (st.materiel || []).map((m) => `<li style="margin-bottom:5px;font-size:13px;"><span style="display:inline-block;width:12px;height:12px;border:1.5px solid #7C9070;border-radius:3px;vertical-align:-2px;margin-right:8px;background:#fff;"></span>${escapeHtml(m)}</li>`).join("");
       const mots = bingoMots[st.id];
       const bingoHtml = (activiteNecessiteBingo(st.nom) && mots && mots.length >= 24) ? (() => {
         const grille = [...mots.slice(0, 12), "GRATUIT", ...mots.slice(12, 24)];
@@ -2712,10 +2790,10 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
       return `<div style="page-break-before:always;page-break-inside:avoid;padding:24px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(st.lieu || "Plateau")}</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
-        <p style="color:#7A7362;">${escapeHtml(st.age)} · ${escapeHtml(st.duree)}</p>
+        <p style="color:#7A7362;">${escapeHtml(st.age)} · ${escapeHtml(st.duree)}${normaliserPreparation(st.preparation) ? ` &nbsp; ${preparationBadgeHtml(st.preparation)}` : ""}</p>
         ${st.amorce ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(st.amorce)}</p>` : ""}
         ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
-        ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
+        ${materielBoiteHtml(materiel, st.preparation)}
         ${(st.adaptationPlusJeunes || st.adaptationPlusVieux) ? `<div style="margin-top:16px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Adaptation selon l'âge</p>${st.adaptationPlusJeunes ? `<p style="font-size:13px;margin:2px 0;"><strong>Plus jeunes :</strong> ${escapeHtml(st.adaptationPlusJeunes)}</p>` : ""}${st.adaptationPlusVieux ? `<p style="font-size:13px;margin:2px 0;"><strong>Plus vieux :</strong> ${escapeHtml(st.adaptationPlusVieux)}</p>` : ""}</div>` : ""}
         ${collationHtml}
           </div>${bingoHtml}${cartesHtml}${cartesIllustreesHtml}${quizHtml}${photoResultatHtml}${materielGenereHtml}`;
@@ -2860,6 +2938,7 @@ ${fichesHtml}
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: COLORS.marine }}>{st.lieu || "Plateau"}</p>
           <h2 className="text-2xl font-bold mt-1" style={{ fontFamily: "Baloo 2, sans-serif", color: COLORS.mossDark }}>{st.nom}</h2>
           <p className="text-[#7A7362] mt-0.5">{st.age} · {st.duree}</p>
+          {normaliserPreparation(st.preparation) && <div className="mt-2"><PreparationBadge niveau={st.preparation} /></div>}
           <div className="leaf-underline w-16 mt-3 mb-5" />
 
           {st.amorce && (
@@ -2878,12 +2957,16 @@ ${fichesHtml}
             ))}
           </ul>
 
-          <h3 className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: COLORS.moss }}>Matériel</h3>
-          <ul className="space-y-1">
-            {(st.materiel || []).map((m, i) => (
-              <li key={i} className="flex gap-2 text-[15px] text-[#2B2A26]"><span style={{ color: COLORS.marine }}>•</span>{m}</li>
-            ))}
-          </ul>
+          <div className="rounded-xl p-4" style={{ background: "#F3F7F1", border: "1px solid #D5E2D0" }}>
+            <h3 className="text-sm font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: COLORS.mossDark }}><ShoppingBag size={14} /> Matériel</h3>
+            <ul className="space-y-1.5">
+              {(st.materiel || []).map((m, i) => (
+                <li key={i} className="flex gap-2 items-start text-[15px] text-[#2B2A26]">
+                  <span className="mt-1 shrink-0 inline-flex items-center justify-center rounded-md bg-white" style={{ width: 16, height: 16, border: `1.5px solid ${COLORS.moss}`, color: COLORS.moss }}><Check size={10} strokeWidth={3} /></span>{m}
+                </li>
+              ))}
+            </ul>
+          </div>
           {activiteNecessiteCollation(st.nom, st.materiel) && (
             <CollationSuggestions idees={collationIdees[st.id]} />
           )}
@@ -3030,7 +3113,7 @@ async function enregistrerVersionImprimable(html, nomFichier) {
 
 const WEEKLY_DEFAULT_PERIODES = ["Midi"];
 const weeklyCellKey = (jour, periode) => `${jour}__${periode}`;
-const weeklyEmptyCell = () => ({ activite: "", local: "", domaines: [], remarques: "", description: "", materiel: [], amorce: "", duree: "", resume: "" });
+const weeklyEmptyCell = () => ({ activite: "", local: "", domaines: [], remarques: "", description: "", materiel: [], amorce: "", duree: "", resume: "", preparation: "" });
 
 function weeklyBuildWeekPrompt({ theme, ages, cellsToFill, variety }) {
   const isMultiAge = ages && ages.length === AGES.length && AGES.every((a) => ages.includes(a));
@@ -3047,6 +3130,7 @@ Pour chaque case suivante (jour + période), propose UNE activité simple et cou
 IMPORTANT : pour toute case dont le lieu est "Cuisine" (que ce soit le lieu déjà indiqué ou celui que tu choisis), l'activité est une recette — dans le champ "materiel" de cette case, écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine"), pas seulement le nom de l'ingrédient.
 Pour chaque activité, écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité.
 Pour chaque activité, écris aussi un court résumé (une seule phrase, environ 10-15 mots) décrivant simplement en quoi consiste l'activité, pour un aperçu rapide.
+${PREPARATION_CONSIGNE}
 ${variety ? `Pour varier la semaine (les autres cases sont générées séparément), propose ici ${variety}.\n` : ""}Cases à remplir : ${JSON.stringify(cellsToFill)}
 
 Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, format exact :
@@ -3061,6 +3145,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant/après, format
     "amorce": "Courte amorce à dire aux enfants",
     "duree": "Durée estimée (ex. 30 minutes)",
     "resume": "Courte description en une phrase",
+    "preparation": "aucune, legere ou elaboree",
     "description": ["Étape 1 du déroulement", "Étape 2", "Étape 3"],
     "materiel": ["Item 1", "Item 2"]
   }
@@ -3077,6 +3162,7 @@ Jour : ${jour}, période : ${periode}
 Lieu (si fourni, à respecter) : ${lieu || "au choix"}
 Durée : 30 minutes maximum. N'excède jamais 30 minutes.
 Évite de répéter : ${avoid || "aucune activité à éviter"}
+${PREPARATION_CONSIGNE}
 ${lieu && activiteEstCuisine(lieu) ? `\nIMPORTANT : cette activité se déroule à la Cuisine — c'est donc une recette. Dans le champ "materiel", écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine", "1/2 tasse de cassonade"), pas seulement le nom de l'ingrédient.\n` : ""}
 ${agesInstruction(ages, approcheIndex)}
 Réponds UNIQUEMENT avec un objet JSON valide, format exact :
@@ -3088,6 +3174,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, format exact :
   "amorce": "Courte amorce à dire aux enfants",
   "duree": "Durée estimée (ex. 30 minutes)",
   "resume": "Courte description en une phrase",
+  "preparation": "aucune, legere ou elaboree",
   "description": ["Étape 1 du déroulement", "Étape 2", "Étape 3"],
   "materiel": ["Item 1", "Item 2"]
 }
@@ -3426,6 +3513,7 @@ function WeeklyGridTool({ initialData }) {
           amorce: r.amorce || "",
           duree: r.duree || "",
           resume: r.resume || "",
+          preparation: normaliserPreparation(r.preparation),
           description: Array.isArray(r.description) ? r.description.join("\n") : (r.description || ""),
           materiel: Array.isArray(r.materiel) ? r.materiel : (r.materiel ? [r.materiel] : []),
         };
@@ -3453,6 +3541,7 @@ function WeeklyGridTool({ initialData }) {
         amorce: raw.amorce || "",
         duree: raw.duree || "",
         resume: raw.resume || "",
+        preparation: normaliserPreparation(raw.preparation),
         description: Array.isArray(raw.description) ? raw.description.join("\n") : (raw.description || ""),
         materiel: Array.isArray(raw.materiel) ? raw.materiel : (raw.materiel ? [raw.materiel] : []),
       });
@@ -3488,6 +3577,7 @@ function WeeklyGridTool({ initialData }) {
           <div style="${labelStyle}">Activité :</div><div style="${valueStyle}">${escapeHtml(cell.activite) || "—"}</div>
           ${cell.resume ? `<div style="${labelStyle}">Description :</div><div style="${valueStyle}">${escapeHtml(cell.resume)}</div>` : ""}
           ${cell.materiel?.filter((m) => m.trim()).length ? `<div style="${labelStyle}">Matériel :</div><div style="${valueStyle}">${escapeHtml(cell.materiel.filter((m) => m.trim()).join(", "))}</div>` : ""}
+          ${normaliserPreparation(cell.preparation) ? `<div style="margin:2px 0 6px;">${preparationBadgeHtml(cell.preparation)}</div>` : ""}
           ${cell.domaines.length ? `<div style="${labelStyle}">Aspects du développement :</div><div style="font-size:11px;color:#7C9070;">${escapeHtml(cell.domaines.join(" · "))}</div>` : ""}
         </td>`;
       }).join("");
@@ -3500,7 +3590,7 @@ function WeeklyGridTool({ initialData }) {
       const c = getCell(jourObj.name, periode);
       if (!c.activite?.trim()) return;
       const etapes = (c.description || "").split("\n").filter((l) => l.trim()).map((l, i) => `<li style="margin-bottom:6px;">${i + 1}. ${escapeHtml(l)}</li>`).join("");
-      const materiel = (c.materiel || []).filter((m) => m.trim()).map((m) => `<li style="margin-bottom:4px;">• ${escapeHtml(m)}</li>`).join("");
+      const materiel = (c.materiel || []).filter((m) => m.trim()).map((m) => `<li style="margin-bottom:5px;font-size:13px;"><span style="display:inline-block;width:12px;height:12px;border:1.5px solid #7C9070;border-radius:3px;vertical-align:-2px;margin-right:8px;background:#fff;"></span>${escapeHtml(m)}</li>`).join("");
       const idees = collationIdeesWeek[weeklyCellKey(jourObj.name, periode)];
       const collationHtml = (activiteNecessiteCollation(c.activite, c.materiel) && idees && idees.length >= 3)
         ? `<div style="margin-top:10px;padding:10px 12px;border:1px solid #E3DACB;border-radius:8px;"><p style="color:#7C9070;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Suggestions de collation</p><ul style="list-style:none;padding-left:0;margin:0;">${idees.slice(0, 3).map((i) => `<li style="margin-bottom:3px;">• ${escapeHtml(i)}</li>`).join("")}</ul></div>`
@@ -3509,9 +3599,10 @@ function WeeklyGridTool({ initialData }) {
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">${escapeHtml(jourObj.name)} · ${escapeHtml(periode)}${c.local ? " · " + escapeHtml(c.local) : ""}${c.duree ? " · " + escapeHtml(c.duree) : ""}</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(c.activite)}</h2>
         ${c.domaines.length ? `<p style="color:#7A7362;">${c.domaines.map(escapeHtml).join(" · ")}</p>` : ""}
+        ${normaliserPreparation(c.preparation) ? `<p style="margin:6px 0 0;">${preparationBadgeHtml(c.preparation)}</p>` : ""}
         ${c.amorce ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Amorce</h3><p style="font-style:italic;">${escapeHtml(c.amorce)}</p>` : ""}
         ${etapes ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Déroulement</h3><ol style="padding-left:18px;">${etapes}</ol>` : ""}
-        ${materiel ? `<h3 style="color:#7C9070;font-size:13px;text-transform:uppercase;margin-top:16px;">Matériel</h3><ul style="list-style:none;padding-left:0;">${materiel}</ul>` : ""}
+        ${materielBoiteHtml(materiel, c.preparation)}
         ${c.remarques ? `<p style="color:#7A7362;font-style:italic;margin-top:12px;">${escapeHtml(c.remarques)}</p>` : ""}
         ${collationHtml}
       </div>`);
@@ -3961,8 +4052,9 @@ function WeeklyGridTool({ initialData }) {
                               </>
                             )}
                             {cell.materiel?.filter((m) => m.trim()).length > 0 && (
-                              <div className="text-xs mt-1"><span className="font-bold" style={{ color: COLORS.moss }}>Matériel :</span> {cell.materiel.filter((m) => m.trim()).join(", ")}</div>
+                              <div className="text-xs mt-1 rounded-lg px-2 py-1.5" style={{ background: "#F3F7F1", border: "1px solid #D5E2D0" }}><span className="font-bold" style={{ color: COLORS.moss }}>🧺 Matériel :</span> {cell.materiel.filter((m) => m.trim()).join(", ")}</div>
                             )}
+                            {normaliserPreparation(cell.preparation) && <div className="mt-1"><PreparationBadge niveau={cell.preparation} compact /></div>}
                             {cell.domaines.length > 0 && (
                               <>
                                 <div className="text-xs font-bold mt-1" style={{ color: COLORS.moss }}>Aspects du développement :</div>

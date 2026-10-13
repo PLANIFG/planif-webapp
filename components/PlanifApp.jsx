@@ -727,6 +727,8 @@ function CartesIllustreesPrintPage({ nomActivite, theme, cartes }) {
 // Une activité est considérée comme une recette de cuisine quand son lieu
 // est "Cuisine" — signal fiable choisi par l'éducatrice elle-même, plutôt
 // que de chercher un mot précis dans le texte (qui n'apparaît pas toujours).
+// Photo du résultat final des recettes : désactivée (recette + ingrédients seulement).
+const PHOTO_RESULTAT_ACTIVE = false;
 function activiteEstCuisine(lieu) {
   const norm = String(lieu || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return norm.includes("cuisine");
@@ -1271,7 +1273,7 @@ ${lieuAssigne ? `Lieu à utiliser pour CETTE activité : "${lieuAssigne}" — n'
 ${agesInstruction(ages, approcheIndex)}${adaptationInstruction(ages)}
 Propose UNE nouvelle idée d'activité, différente de celles-ci : ${avoidNames.join(", ") || "aucune"}.
 IMPORTANT : ${isMercredi ? "l'activité doit durer 30 MINUTES MAXIMUM (c'est le temps alloué par bloc de rotation)." : "l'activité doit durer 60 minutes MAXIMUM (idéalement 30 à 60 minutes)."}
-${lieuAssigne && activiteEstCuisine(lieuAssigne) ? `\nIMPORTANT : cette activité se déroule à la Cuisine — c'est donc une recette. Dans le champ "materiel", écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine", "1/2 tasse de cassonade"), pas seulement le nom de l'ingrédient.\n` : ""}
+${lieuAssigne && activiteEstCuisine(lieuAssigne) ? `\nIMPORTANT : cette activité se déroule à la Cuisine — c'est donc une recette. Dans le champ "materiel", écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine", "1/2 tasse de cassonade"), pas seulement le nom de l'ingrédient. La recette doit être INDIVIDUELLE : chaque élève prépare sa propre portion, seul ou presque. Donne donc toutes les quantités pour UN SEUL élève (petites quantités faciles à mesurer : cuillères, 1/4 tasse, 1 tranche, etc.) et choisis des recettes qui se réalisent bien en petite portion (muffin ou biscuit individuel, collation à assembler, mélange simple), jamais un gâteau ou une grande recette à partager. Le matériel de cuisine est lui aussi individuel (un bol, une cuillère, un contenant par élève). Ajoute en dernière ligne du matériel la mention : Quantités pour 1 élève (multiplier par le nombre d'élèves).\n` : ""}
 Écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité de façon vivante.
 ${MATERIEL_CONSIGNE}
 
@@ -2507,6 +2509,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
   const photoResultatEnCours = useRef({});
   useEffect(() => {
     kept.forEach((activite) => {
+      if (!PHOTO_RESULTAT_ACTIVE) return;
       if (!activiteEstCuisine(activite.lieu)) return;
       if (photoResultat[activite.id] || photoResultatEnCours.current[activite.id]) return;
       photoResultatEnCours.current[activite.id] = true;
@@ -2761,7 +2764,7 @@ function PrintView({ theme, dateLabel, groups, computedRows, scheduleRows, kept,
         </div>
       </div>`;
       })() : "";
-            const photoResultatHtml = (activiteEstCuisine(st.lieu) && photoResultat[st.id]) ? `<div class="fiche" style="page-break-before:always;break-inside:avoid;page-break-inside:avoid;padding:12px 0;">
+            const photoResultatHtml = (PHOTO_RESULTAT_ACTIVE && activiteEstCuisine(st.lieu) && photoResultat[st.id]) ? `<div class="fiche" style="page-break-before:always;break-inside:avoid;page-break-inside:avoid;padding:12px 0;">
         <p style="color:#54634A;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Résultat final</p>
         <h2 style="color:#54634A;margin:4px 0 12px;">${escapeHtml(st.nom)}</h2>
         <div style="display:flex;justify-content:center;">
@@ -2990,7 +2993,7 @@ ${fichesHtml}
            {activiteNecessiteQuiz(st.nom, st.materiel) && (
           <QuizPrintPage nomActivite={st.nom} theme={theme} questions={quizQuestions[st.id]} />
         )}
-        {activiteEstCuisine(st.lieu) && (
+        {PHOTO_RESULTAT_ACTIVE && activiteEstCuisine(st.lieu) && (
           <PhotoResultatPrintPage nomActivite={st.nom} image={photoResultat[st.id]} />
         )}
         {activiteNecessiteMaterielGenere(st.materiel).map((itemMateriel) => (
@@ -3127,7 +3130,7 @@ Groupes d'âge visés : ${ages.length ? ages.join(", ") : "4-12 ans, tous groupe
 IMPORTANT : chaque activité doit se réaliser en 30 minutes maximum. N'excède jamais 30 minutes.
 ${multiAgeInstruction}
 Pour chaque case suivante (jour + période), propose UNE activité simple et courte, adaptée aux groupes d'âge visés et réalisable en service de garde. Si un lieu est déjà indiqué pour la case, utilise-le ; sinon, choisis un lieu approprié.
-IMPORTANT : pour toute case dont le lieu est "Cuisine" (que ce soit le lieu déjà indiqué ou celui que tu choisis), l'activité est une recette — dans le champ "materiel" de cette case, écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine"), pas seulement le nom de l'ingrédient.
+IMPORTANT : pour toute case dont le lieu est "Cuisine" (que ce soit le lieu déjà indiqué ou celui que tu choisis), l'activité est une recette — dans le champ "materiel" de cette case, écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine"), pas seulement le nom de l'ingrédient. La recette doit être INDIVIDUELLE : chaque élève prépare sa propre portion, seul ou presque. Donne donc toutes les quantités pour UN SEUL élève (petites quantités faciles à mesurer : cuillères, 1/4 tasse, 1 tranche, etc.) et choisis des recettes qui se réalisent bien en petite portion (muffin ou biscuit individuel, collation à assembler, mélange simple), jamais un gâteau ou une grande recette à partager. Le matériel de cuisine est lui aussi individuel (un bol, une cuillère, un contenant par élève). Ajoute en dernière ligne du matériel la mention : Quantités pour 1 élève (multiplier par le nombre d'élèves).
 Pour chaque activité, écris aussi une courte amorce (3 à 5 phrases, à dire directement aux enfants) pour capter leur attention et introduire l'activité.
 Pour chaque activité, écris aussi un court résumé (une seule phrase, environ 10-15 mots) décrivant simplement en quoi consiste l'activité, pour un aperçu rapide.
 ${MATERIEL_CONSIGNE}
@@ -3162,7 +3165,7 @@ Lieu (si fourni, à respecter) : ${lieu || "au choix"}
 Durée : 30 minutes maximum. N'excède jamais 30 minutes.
 Évite de répéter : ${avoid || "aucune activité à éviter"}
 ${MATERIEL_CONSIGNE}
-${lieu && activiteEstCuisine(lieu) ? `\nIMPORTANT : cette activité se déroule à la Cuisine — c'est donc une recette. Dans le champ "materiel", écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine", "1/2 tasse de cassonade"), pas seulement le nom de l'ingrédient.\n` : ""}
+${lieu && activiteEstCuisine(lieu) ? `\nIMPORTANT : cette activité se déroule à la Cuisine — c'est donc une recette. Dans le champ "materiel", écris chaque ingrédient AVEC sa quantité précise (ex. "2 tasses de farine", "1/2 tasse de cassonade"), pas seulement le nom de l'ingrédient. La recette doit être INDIVIDUELLE : chaque élève prépare sa propre portion, seul ou presque. Donne donc toutes les quantités pour UN SEUL élève (petites quantités faciles à mesurer : cuillères, 1/4 tasse, 1 tranche, etc.) et choisis des recettes qui se réalisent bien en petite portion (muffin ou biscuit individuel, collation à assembler, mélange simple), jamais un gâteau ou une grande recette à partager. Le matériel de cuisine est lui aussi individuel (un bol, une cuillère, un contenant par élève). Ajoute en dernière ligne du matériel la mention : Quantités pour 1 élève (multiplier par le nombre d'élèves).\n` : ""}
 ${agesInstruction(ages, approcheIndex)}
 Réponds UNIQUEMENT avec un objet JSON valide, format exact :
 {
